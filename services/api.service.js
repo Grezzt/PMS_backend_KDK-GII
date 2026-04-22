@@ -28,14 +28,14 @@ module.exports = {
 		ip: "0.0.0.0",
 
 		// CORS Config
-		// cors: {
-		// 	origin: "*", // Atau gunakan array url frontend spesifik seperti ["https://domain-frontend.com"]
-		// 	methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE", "PATCH"],
-		// 	allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
-		// 	exposedHeaders: [],
-		// 	credentials: true,
-		// 	maxAge: 3600
-		// },
+		cors: {
+			origin: "*", // Atau gunakan array url frontend spesifik seperti ["https://domain-frontend.com"]
+			methods: ["GET", "OPTIONS", "POST", "PUT", "DELETE", "PATCH"],
+			allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+			exposedHeaders: [],
+			credentials: true,
+			maxAge: 3600
+		},
 
 		// Rate Limiting Config
 		rateLimit: {
@@ -58,7 +58,7 @@ module.exports = {
 			{
 				path: "/api",
 
-whitelist: ["auth.**", "workspaces.**"],
+				whitelist: ["auth.**", "workspaces.**", "projects.**"],
 
 				// Route-level Express middlewares. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Middlewares
 				use: [],
@@ -76,13 +76,11 @@ whitelist: ["auth.**", "workspaces.**"],
 				// The gateway will dynamically build the full routes from service schema.
 				autoAliases: true,
 
-                                aliases: {
-                                        "GET /projects": "workspaces.listProjects",
-                                        "GET /projects/:id": "workspaces.getProject",
-                                        "POST /projects": "workspaces.createProject",
-                                        "PATCH /projects/:id": "workspaces.updateProject",
-                                        "DELETE /projects/:id": "workspaces.removeProject"
-                                },
+				aliases: {
+					// Tambahkan custom aliases jika autoAliases tidak cukup
+				},
+
+				/**
 				 * Before call hook. You can check the request.
 				 * @param {Context} ctx
 				 * @param {Object} route
@@ -174,7 +172,7 @@ whitelist: ["auth.**", "workspaces.**"],
 				try {
 					// Verify the token by calling the `auth` service
 					const user = await ctx.call("auth.verifyToken", { token });
-					this.logger.info(`Authenticated user: ${user.username} (ID: ${user.id})`);
+					this.logger.info(`Authenticated user: ${user.email} (ID: ${user.id})`);
 
 					// Return the user object, which will be accessible via \`ctx.meta.user\` in subsequent actions
 					return user;

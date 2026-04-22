@@ -2,13 +2,13 @@
 	"info": {
 		"_postman_id": "0df81e05-2d4e-4f24-9b2f-db3bfb81096a",
 		"name": "Moleculer JS Microservice Auth API",
-		"description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — token JWT akan otomatis tersimpan ke env variable `jwt_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
+		"description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — access token dan refresh token akan otomatis tersimpan ke env variable `jwt_token` dan `refresh_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
 			"name": "Auth",
-			"description": "Grup endpoint terkait autentikasi (Registrasi, Login, dan Profil).",
+			"description": "Grup endpoint terkait autentikasi (Registrasi, Login, Profil, Refresh, Logout).",
 			"item": [
 				{
 					"name": "1. User Registration",
@@ -19,7 +19,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"johndoe\",\n    \"password\": \"password123\",\n    \"email\": \"johndoe@email.com\"\n}",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"password\": \"password123\",\n    \"email\": \"johndoe@email.com\"\n}",
 							"options": { "raw": { "language": "json" } }
 						},
 						"url": {
@@ -39,9 +39,10 @@
 							"script": {
 								"exec": [
 									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.token) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.token);",
-									"    console.log(\"Token automatically saved to environment variables!\");",
+									"if (jsonData && jsonData.accessToken) {",
+									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+									"    pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
+									"    console.log(\"Tokens automatically saved to environment variables!\");",
 									"}"
 								],
 								"type": "text/javascript"
@@ -55,7 +56,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"password123\"\n}",
+							"raw": "{\n    \"email\": \"admin@pms.dev\",\n    \"password\": \"password123\"\n}",
 							"options": { "raw": { "language": "json" } }
 						},
 						"url": {
@@ -63,7 +64,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["api", "auth", "login"]
 						},
-						"description": "Login dan dapatkan JWT token.\n\n*Catatan: Script Postman pada endpoint ini telah dikonfigurasi untuk menangkap nilai token balasan secara otomatis dan memindahkannya ke Environment Variable `jwt_token`. Anda tinggal mengeksekusi request berikutnya tanpa perlu copy-paste token manual!*"
+						"description": "Login dan dapatkan JWT Access Token & Refresh Token.\n\n*Catatan: Script Postman pada endpoint ini telah dikonfigurasi untuk menangkap nilai token balasan secara otomatis dan memindahkannya ke Environment Variable `jwt_token` dan `refresh_token`. Anda tinggal mengeksekusi request berikutnya tanpa perlu copy-paste token manual!*"
 					},
 					"response": []
 				},
@@ -84,6 +85,63 @@
 							"path": ["api", "auth", "me"]
 						},
 						"description": "Endpoint yang terotorisasi. Hanya pengguna yang menyematkan `Bearer Token` di bagian HTTP header (Authorization) yang dapat mengakses ini. Token tersebut diambil otomatis dari hasil login."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.accessToken) {",
+									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+									"    console.log(\"New Access Token automatically saved!\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "refresh"]
+						},
+						"description": "Memperbarui Access Token yang sudah expired menggunakan Refresh Token."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+							"options": { "raw": { "language": "json" } }
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout"]
+						},
+						"description": "Logout dan revoke Refresh Token agar tidak bisa digunakan lagi."
 					},
 					"response": []
 				}
@@ -108,6 +166,11 @@
 		},
 		{
 			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
 			"value": "",
 			"type": "string"
 		}

@@ -6,11 +6,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const { MoleculerError } = require("moleculer").Errors;
-const { PrismaClient } = require("@prisma/client");
-const { getCollection } = require("../mongodb/connection");
-
-// ─── Singleton Prisma ────────────────────────────────────────────────────────
-const prisma = new PrismaClient();
+const { getMongoDb, getCollection, closeMongoDb } = require("../mongodb/connection");
+const PrismaMixin = require("../mixins/prisma.mixin");
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-minimum-32-chars-change-in-production";
@@ -24,6 +21,7 @@ const REFRESH_EXPIRES_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 
 /** @type {ServiceSchema} */
 module.exports = {
 	name: "auth",
+	mixins: [PrismaMixin],
 
 	settings: {},
 	dependencies: [],
@@ -45,7 +43,7 @@ module.exports = {
 				this.logger.info(`Login attempt: ${email}`);
 
 				// 1. Cari user di PostgreSQL via Prisma
-				const user = await prisma.user.findUnique({ where: { email } });
+				const user = await this.prisma.user.findUnique({ where: { email } });
 				if (!user) {
 					throw new MoleculerError("Invalid email or password", 401, "ERR_INVALID_CREDS");
 				}
@@ -88,7 +86,7 @@ module.exports = {
 				this.logger.info(`Register: ${email}`);
 
 				// 1. Cek email sudah ada
-				const existing = await prisma.user.findUnique({ where: { email } });
+				const existing = await this.prisma.user.findUnique({ where: { email } });
 				if (existing) {
 					throw new MoleculerError("Email already registered", 409, "ERR_EMAIL_EXISTS");
 				}
@@ -97,7 +95,7 @@ module.exports = {
 				const passwordHash = await bcrypt.hash(password, 12);
 
 				// 3. Buat user di PostgreSQL
-				const user = await prisma.user.create({
+				const user = await this.prisma.user.create({
 					data: { name, email, passwordHash }
 				});
 
@@ -118,7 +116,7 @@ module.exports = {
 			async handler(ctx) {
 				const { id } = ctx.meta.user;
 
-				const user = await prisma.user.findUnique({ where: { id } });
+				const user = await this.prisma.user.findUnique({ where: { id } });
 				if (!user) {
 					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
 				}
@@ -160,7 +158,7 @@ module.exports = {
 				}
 
 				// 2. Ambil user dari PostgreSQL
-				const user = await prisma.user.findUnique({ where: { id: tokenDoc.user_id } });
+				const user = await this.prisma.user.findUnique({ where: { id: tokenDoc.user_id } });
 				if (!user) {
 					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
 				}
@@ -269,11 +267,15 @@ module.exports = {
 	 * Service lifecycle
 	 */
 	async started() {
+		// Prisma sudah dikoneksikan oleh prisma.mixin.
+		// Sekarang pastikan koneksi MongoDB juga dibuat saat service berjalan.
+		await getMongoDb();
 		this.logger.info("✅ auth.service started — PostgreSQL + MongoDB ready");
 	},
 
 	async stopped() {
-		await prisma.$disconnect();
-		this.logger.info("auth.service stopped — Prisma disconnected");
+		// Disconnect MongoDB (Prisma dihandle otomatis oleh prisma.mixin)
+		await closeMongoDb();
+		this.logger.info("auth.service stopped");
 	}
 };

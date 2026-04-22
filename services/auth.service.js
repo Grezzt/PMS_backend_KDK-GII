@@ -50,15 +50,9 @@ module.exports = {
 
 				// Mock Database Check (Replace with your DB logic)
 				// e.g., const user = await ctx.call("users.findByUsername", { username });
-				const mockUser = {
-					id: 1,
-					username: "admin",
-					role: "admin",
-					// bcrypt.hashSync("password123", 10)
-					passwordHash: "$2a$10$X05w/RkHw/j2o2vRToH6UOkvY2G5D.sQYtQZ/kI/E6c6O9f2wG6u2"
-				};
+				const mockUser = null;
 
-				if (username !== mockUser.username) {
+				if (!mockUser) {
 					this.logger.warn(`Login failed: Username not found - ${username}`);
 					throw new MoleculerError(
 						"Invalid username or password",
@@ -69,7 +63,7 @@ module.exports = {
 
 				// Mock Password Check
 				// const isMatch = await bcrypt.compare(password, mockUser.passwordHash);
-				const isMatch = password === "password123";
+				const isMatch = false;
 
 				if (!isMatch) {
 					this.logger.warn(`Login failed: Incorrect password for ${username}`);

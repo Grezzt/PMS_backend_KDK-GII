@@ -1,0 +1,271 @@
+// =============================================================================
+// PMS Backend — Prisma Schema (PostgreSQL)
+// Database: PostgreSQL (via Docker)
+// MongoDB: user_tokens & audit_logs (lihat mongodb/schemas/)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum WorkspaceRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum TaskType {
+  TASK
+  BUG
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SubtaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+// =============================================================================
+// USER
+// =============================================================================
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  workspaceMembers WorkspaceMember[]
+  ledProjects      Project[]         @relation("ProjectLeader")
+  createdTasks     Task[]            @relation("TaskCreator")
+  assignedTasks    TaskAssignee[]
+  taskComments     TaskComment[]
+  taskAttachments  TaskAttachment[]
+
+  @@map("users")
+}
+
+// =============================================================================
+// WORKSPACE
+// =============================================================================
+
+model Workspace {
+  id          String   @id @default(uuid())
+  name        String
+  ownerId     String   @map("owner_id")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members  WorkspaceMember[]
+  projects Project[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid())
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+
+  // Relationships
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+// =============================================================================
+// PROJECT
+// =============================================================================
+
+model Project {
+  id           String            @id @default(uuid())
+  workspaceId  String            @map("workspace_id")
+  name         String
+  description  String?
+  leaderId     String            @map("leader_id")
+  visibility   ProjectVisibility @default(PRIVATE)
+  statusConfig Json?             @map("status_config") // Custom workflow statuses
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  // Relationships
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  leader    User      @relation("ProjectLeader", fields: [leaderId], references: [id])
+  tasks     Task[]
+
+  @@map("projects")
+}
+
+// =============================================================================
+// TASK
+// =============================================================================
+
+model Task {
+  id          String       @id @default(uuid())
+  projectId   String       @map("project_id")
+  title       String
+  description String?
+  type        TaskType     @default(TASK)
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  progress    Int          @default(0)
+  startDate   DateTime?    @map("start_date")
+  dueDate     DateTime?    @map("due_date")
+  completedAt DateTime?    @map("completed_at")
+  createdById String       @map("created_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relationships
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation("TaskCreator", fields: [createdById], references: [id])
+  assignees   TaskAssignee[]
+  comments    TaskComment[]
+  subtasks    Subtask[]
+  labels      TaskLabel[]
+  attachments TaskAttachment[]
+
+  @@map("tasks")
+}
+
+// =============================================================================
+// SUBTASK
+// =============================================================================
+
+model Subtask {
+  id        String        @id @default(uuid())
+  taskId    String        @map("task_id")
+  title     String
+  status    SubtaskStatus @default(TODO)
+  progress  Int           @default(0)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  // Relationships
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("subtasks")
+}
+
+// =============================================================================
+// TASK ASSIGNEE
+// =============================================================================
+
+model TaskAssignee {
+  taskId String @map("task_id")
+  userId String @map("user_id")
+
+  // Relationships
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@map("task_assignees")
+}
+
+// =============================================================================
+// TASK COMMENT
+// =============================================================================
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String   // Mendukung Markdown/Rich Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+// =============================================================================
+// LABEL & TASK LABEL
+// =============================================================================
+
+model Label {
+  id    String      @id @default(uuid())
+  name  String
+  color String      // HEX warna, contoh: "#FF0000"
+  tasks TaskLabel[]
+
+  @@map("labels")
+}
+
+model TaskLabel {
+  taskId  String @map("task_id")
+  labelId String @map("label_id")
+
+  // Relationships
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
+  @@map("task_labels")
+}
+
+// =============================================================================
+// TASK ATTACHMENT
+// =============================================================================
+
+model TaskAttachment {
+  id         String   @id @default(uuid())
+  taskId     String   @map("task_id")
+  fileName   String   @map("file_name")
+  fileUrl    String   @map("file_url")
+  uploadedBy String   @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploadedBy], references: [id])
+
+  @@map("task_attachments")
+}
+
+// =============================================================================
+// NOTE: USER_TOKENS & AUDIT_LOG ada di MongoDB
+// Lihat: mongodb/schemas/user_tokens.js & mongodb/schemas/audit_logs.js
+// =============================================================================

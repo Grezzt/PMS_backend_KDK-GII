@@ -2,17 +2,16 @@
 
 const path = require("path");
 const { MoleculerError } = require("moleculer").Errors;
+const AuthMixin = require("../mixins/auth.mixin");
 
 // ---------------------------------------------------------------------------
 // Load JSON seed files — used as the in-memory data store for dev/test.
 // In production, replace these loads with real DB adapter queries.
 // ---------------------------------------------------------------------------
-const SEED_DIR = path.join(__dirname, "../data/seed");
-
-const dbWorkspaces       = require(path.join(SEED_DIR, "workspaces.json"));
-const dbProjects         = require(path.join(SEED_DIR, "projects.json"));
-const dbWorkspaceMembers = require(path.join(SEED_DIR, "workspace_members.json"));
-const dbProjectMembers   = require(path.join(SEED_DIR, "project_members.json"));
+const dbWorkspaces = [];
+const dbProjects = [];
+const dbWorkspaceMembers = [];
+const dbProjectMembers = [];
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -40,6 +39,9 @@ const dbProjectMembers   = require(path.join(SEED_DIR, "project_members.json"));
 module.exports = {
 	name: "workspaces",
 
+	// Merge AuthMixin for RBAC checks
+	mixins: [AuthMixin],
+
 	settings: {
 		fields: ["id", "name", "description", "ownerId"]
 	},
@@ -65,8 +67,7 @@ module.exports = {
 			params: { id: "string" },
 			handler(ctx) {
 				const ws = dbWorkspaces.find(w => w.id === ctx.params.id);
-				if (!ws)
-					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+				if (!ws) throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
 				return ws;
 			}
 		},
@@ -91,8 +92,8 @@ module.exports = {
 				keys: ["userId", "projectId", "workspaceId"]
 			},
 			params: {
-				userId:      "string",
-				projectId:   { type: "string", optional: true },
+				userId: "string",
+				projectId: { type: "string", optional: true },
 				workspaceId: { type: "string", optional: true }
 			},
 			handler(ctx) {
@@ -155,7 +156,7 @@ module.exports = {
 			auth: "required",
 			params: {
 				workspaceId: "string",
-				userId:      "string",
+				userId: "string",
 				role: { type: "enum", values: ["admin", "member", "viewer"], default: "member" }
 			},
 			async handler(ctx) {
@@ -176,34 +177,120 @@ module.exports = {
 				return member;
 			}
 		},
-
 		// -----------------------------------------------------------------------
-		// MEMBER MANAGEMENT — add or update a project-level role override
+		// LIST PROJECTS
 		// -----------------------------------------------------------------------
-		addProjectMember: {
-			rest: "POST /projects/:projectId/members",
+		listProjects: {
+			rest: "GET /projects",
 			auth: "required",
 			params: {
-				projectId: "string",
-				userId:    "string",
-				role: { type: "enum", values: ["admin", "member", "viewer"], default: "member" }
+				workspaceId: { type: "string", optional: true }
 			},
 			async handler(ctx) {
-				const { projectId, userId, role } = ctx.params;
-
-				const existing = dbProjectMembers.find(
-					m => m.projectId === projectId && m.userId === userId
-				);
-				if (existing) {
-					existing.role = role;
-					await this.broker.emit("cache.clean.workspaces", {});
-					return existing;
+				const { workspaceId } = ctx.params;
+				if (workspaceId) {
+					await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
+					return dbProjects.filter(p => p.workspaceId === workspaceId);
 				}
+				return dbProjects;
+			}
+		},
 
-				const member = { projectId, userId, role, joinedAt: new Date().toISOString() };
-				dbProjectMembers.push(member);
-				await this.broker.emit("cache.clean.workspaces", {});
-				return member;
+		// -----------------------------------------------------------------------
+		// GET A SINGLE PROJECT
+		// -----------------------------------------------------------------------
+		getProject: {
+			rest: "GET /projects/:id",
+			auth: "required",
+			params: { id: "string" },
+			async handler(ctx) {
+				const { id } = ctx.params;
+				const project = dbProjects.find(p => p.id === id);
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				await this.checkProjectAccess(ctx, id, "viewer");
+				return project;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// CREATE A PROJECT
+		// -----------------------------------------------------------------------
+		createProject: {
+			rest: "POST /projects",
+			auth: "required",
+			params: {
+				workspaceId: "string",
+				name: "string",
+				description: { type: "string", optional: true }
+			},
+			async handler(ctx) {
+				const { workspaceId, name, description } = ctx.params;
+				await this.checkWorkspaceAccess(ctx, workspaceId, "member");
+				const newProject = {
+					id: "proj-" + Date.now(),
+					workspaceId,
+					name,
+					description: description || "",
+					status: "active",
+					createdBy: ctx.meta.user.id,
+					createdAt: new Date().toISOString()
+				};
+				dbProjects.push(newProject);
+				this.logger.info(
+					`[workspaces] Created project "${name}" by user=${ctx.meta.user.id}`
+				);
+				return newProject;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// UPDATE A PROJECT
+		// -----------------------------------------------------------------------
+		updateProject: {
+			rest: "PATCH /projects/:id",
+			auth: "required",
+			params: {
+				id: "string",
+				name: { type: "string", optional: true },
+				description: { type: "string", optional: true },
+				status: {
+					type: "enum",
+					values: ["active", "archived", "completed"],
+					optional: true
+				}
+			},
+			async handler(ctx) {
+				const { id, name, description, status } = ctx.params;
+				const project = dbProjects.find(p => p.id === id);
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				const effectiveRole = await this.checkProjectAccess(ctx, id, "member");
+				this.logger.info(
+					`[workspaces] User=${ctx.meta.user.id} (role="${effectiveRole}") updating project=${id}`
+				);
+				if (name !== undefined) project.name = name;
+				if (description !== undefined) project.description = description;
+				if (status !== undefined) project.status = status;
+				project.updatedAt = new Date().toISOString();
+				project.updatedBy = ctx.meta.user.id;
+				return project;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// DELETE A PROJECT
+		// -----------------------------------------------------------------------
+		removeProject: {
+			rest: "DELETE /projects/:id",
+			auth: "required",
+			params: { id: "string" },
+			async handler(ctx) {
+				const { id } = ctx.params;
+				const idx = dbProjects.findIndex(p => p.id === id);
+				if (idx === -1) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				await this.checkProjectAccess(ctx, id, "admin");
+				const [removed] = dbProjects.splice(idx, 1);
+				this.logger.info(`[workspaces] Project=${id} deleted by user=${ctx.meta.user.id}`);
+				return { deleted: true, project: removed };
 			}
 		}
 	}

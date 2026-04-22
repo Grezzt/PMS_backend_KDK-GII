@@ -58,7 +58,7 @@ module.exports = {
 			{
 				path: "/api",
 
-				whitelist: ["auth.**", "projects.**", "workspaces.**"],
+whitelist: ["auth.**", "workspaces.**"],
 
 				// Route-level Express middlewares. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Middlewares
 				use: [],
@@ -76,9 +76,13 @@ module.exports = {
 				// The gateway will dynamically build the full routes from service schema.
 				autoAliases: true,
 
-				aliases: {},
-
-				/**
+                                aliases: {
+                                        "GET /projects": "workspaces.listProjects",
+                                        "GET /projects/:id": "workspaces.getProject",
+                                        "POST /projects": "workspaces.createProject",
+                                        "PATCH /projects/:id": "workspaces.updateProject",
+                                        "DELETE /projects/:id": "workspaces.removeProject"
+                                },
 				 * Before call hook. You can check the request.
 				 * @param {Context} ctx
 				 * @param {Object} route

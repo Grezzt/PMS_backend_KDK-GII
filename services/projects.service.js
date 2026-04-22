@@ -1,6 +1,6 @@
 "use strict";
 
-const path    = require("path");
+const path = require("path");
 const { MoleculerError } = require("moleculer").Errors;
 const AuthMixin = require("../mixins/auth.mixin");
 
@@ -8,8 +8,7 @@ const AuthMixin = require("../mixins/auth.mixin");
 // Load JSON seed files for local dev & test.
 // In production, replace these with real DB adapter calls.
 // ---------------------------------------------------------------------------
-const SEED_DIR  = path.join(__dirname, "../data/seed");
-const dbProjects = require(path.join(SEED_DIR, "projects.json"));
+const dbProjects = [];
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -87,8 +86,7 @@ module.exports = {
 
 				// Throws 404 before we even check access if the project doesn't exist
 				const project = dbProjects.find(p => p.id === id);
-				if (!project)
-					throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
 
 				// Even viewers can read — this also confirms membership
 				await this.checkProjectAccess(ctx, id, "viewer");
@@ -105,9 +103,9 @@ module.exports = {
 			rest: "POST /",
 			auth: "required",
 			params: {
-				workspaceId:  "string",
-				name:         "string",
-				description:  { type: "string", optional: true }
+				workspaceId: "string",
+				name: "string",
+				description: { type: "string", optional: true }
 			},
 			async handler(ctx) {
 				const { workspaceId, name, description } = ctx.params;
@@ -116,19 +114,21 @@ module.exports = {
 				await this.checkWorkspaceAccess(ctx, workspaceId, "member");
 
 				const newProject = {
-					id:          `proj-${Date.now()}`,
+					id: `proj-${Date.now()}`,
 					workspaceId,
 					name,
 					description: description || "",
-					status:      "active",
-					createdBy:   ctx.meta.user.id,
-					createdAt:   new Date().toISOString()
+					status: "active",
+					createdBy: ctx.meta.user.id,
+					createdAt: new Date().toISOString()
 				};
 
 				// In production: await adapter.insert(newProject)
 				dbProjects.push(newProject);
 
-				this.logger.info(`[projects] Created project "${name}" by user=${ctx.meta.user.id}`);
+				this.logger.info(
+					`[projects] Created project "${name}" by user=${ctx.meta.user.id}`
+				);
 				return newProject;
 			}
 		},
@@ -139,14 +139,14 @@ module.exports = {
 		// -----------------------------------------------------------------------
 		update: {
 			rest: "PATCH /:id",
-			auth: "required",     // api.service enforces token first
+			auth: "required", // api.service enforces token first
 			params: {
-				id:          "string",
-				name:        { type: "string", optional: true },
+				id: "string",
+				name: { type: "string", optional: true },
 				description: { type: "string", optional: true },
 				status: {
-					type:     "enum",
-					values:   ["active", "archived", "completed"],
+					type: "enum",
+					values: ["active", "archived", "completed"],
 					optional: true
 				}
 			},
@@ -155,8 +155,7 @@ module.exports = {
 
 				// 1. Find the project (fail fast with 404 before auth check)
 				const project = dbProjects.find(p => p.id === id);
-				if (!project)
-					throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
 
 				// 2. CONTEXTUAL AUTHORIZATION
 				//    Requires at least "member" role (admin also passes due to hierarchy).
@@ -169,9 +168,9 @@ module.exports = {
 				);
 
 				// 3. Apply updates (JSON mutation; replace with adapter.updateById in prod)
-				if (name        !== undefined) project.name        = name;
+				if (name !== undefined) project.name = name;
 				if (description !== undefined) project.description = description;
-				if (status      !== undefined) project.status      = status;
+				if (status !== undefined) project.status = status;
 				project.updatedAt = new Date().toISOString();
 				project.updatedBy = ctx.meta.user.id;
 
@@ -191,16 +190,13 @@ module.exports = {
 				const { id } = ctx.params;
 
 				const idx = dbProjects.findIndex(p => p.id === id);
-				if (idx === -1)
-					throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				if (idx === -1) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
 
 				// Only admins can delete a project
 				await this.checkProjectAccess(ctx, id, "admin");
 
 				const [removed] = dbProjects.splice(idx, 1);
-				this.logger.info(
-					`[projects] Project=${id} deleted by user=${ctx.meta.user.id}`
-				);
+				this.logger.info(`[projects] Project=${id} deleted by user=${ctx.meta.user.id}`);
 
 				return { deleted: true, project: removed };
 			}

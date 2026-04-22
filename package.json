@@ -1,7 +1,7 @@
 {
-  "name": "my-project",
+  "name": "pms-backend",
   "version": "1.0.0",
-  "description": "My Moleculer-based microservices project",
+  "description": "PMS Backend — Moleculer Microservices with PostgreSQL & MongoDB",
   "scripts": {
     "dev": "moleculer-runner --repl --hot services/**/*.service.js",
     "start": "moleculer-runner",
@@ -10,6 +10,25 @@
     "test": "jest --coverage",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset --force",
+    "migrate:status": "prisma migrate status",
+    "studio": "prisma studio",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:format": "prisma format",
+    "db:setup": "npm run generate && npm run migrate && npm run db:seed",
+
+    "db:up": "docker compose up postgres mongo -d",
+    "db:down": "docker compose stop postgres mongo",
+    "db:logs": "docker compose logs -f postgres mongo",
+    "db:reset": "docker compose down -v && npm run db:up",
+    "mongo:shell": "docker exec -it pms_mongo mongosh -u pms_mongo -p pms_mongo_pass --authenticationDatabase admin",
+    "pg:shell": "docker exec -it pms_postgres psql -U pms_user -d pms_db",
+
     "dc:up": "docker compose up --build -d",
     "dc:logs": "docker compose logs -f",
     "dc:down": "docker compose down"
@@ -27,14 +46,17 @@
     "jest-cli": "^29.7.0",
     "moleculer-repl": "^0.8.0",
     "prettier": "^3.5.3",
+    "prisma": "^6.19.3",
     "supertest": "^7.1.1"
   },
   "dependencies": {
     "@moleculer/channels": "^0.3.1",
     "@moleculer/database": "^0.4.0",
     "@moleculer/workflows": "^0.2.1",
+    "@prisma/client": "^6.19.3",
     "@seald-io/nedb": "^4.1.1",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^16.6.1",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
@@ -56,5 +78,8 @@
     "testMatch": [
       "**/test/**/*.spec.js"
     ]
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }

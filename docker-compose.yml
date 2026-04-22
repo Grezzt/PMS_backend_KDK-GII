@@ -24,14 +24,14 @@ services:
       POSTGRES_PASSWORD: pms_password
       POSTGRES_DB: pms_db
     ports:
-      - "5432:5432"         # Expose ke host untuk koneksi lokal & Prisma Studio
+      - "5433:5432"         # Port 5433 di host → 5432 di container (hindari konflik local PG)
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pms_user} -d ${POSTGRES_DB:-pms_db}"]
+      test: ["CMD-SHELL", "pg_isready -U pms_user -d pms_db"]
       interval: 10s
       timeout: 5s
       retries: 5

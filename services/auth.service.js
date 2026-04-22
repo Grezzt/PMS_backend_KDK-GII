@@ -1,12 +1,21 @@
 "use strict";
 
+require("dotenv").config();
+
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { MoleculerError } = require("moleculer").Errors;
+const { PrismaClient } = require("@prisma/client");
+const { getCollection } = require("../mongodb/connection");
 
-// Note: Please run `npm install jsonwebtoken bcryptjs` for real implementation
-// const bcrypt = require("bcryptjs");
+// ─── Singleton Prisma ────────────────────────────────────────────────────────
+const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || "my-super-secret-key-12345";
+// ─── Constants ───────────────────────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-minimum-32-chars-change-in-production";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "2h";
+const REFRESH_EXPIRES_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS || "7", 10);
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -16,123 +25,187 @@ const JWT_SECRET = process.env.JWT_SECRET || "my-super-secret-key-12345";
 module.exports = {
 	name: "auth",
 
-	// Moleculer features:
-	// - Enable actions to be restricted or publicly accessible
-	// - Caching: We will cache the verifyToken action so we don't spam verification for same tokens
-	settings: {
-		// Empty settings for now
-	},
-
-	/**
-	 * Service dependencies
-	 */
+	settings: {},
 	dependencies: [],
 
 	/**
 	 * Actions
 	 */
 	actions: {
-		/**
-		 * Login action
-		 * Returns a JWT token and user info if credentials are valid.
-		 */
+		// ─── POST /auth/login ────────────────────────────────────────────────
 		login: {
 			rest: "POST /login",
-			// Built-in validation provided by Moleculer parameter validator
 			params: {
-				username: "string",
+				email: "email",
 				password: "string|min:6"
 			},
 			async handler(ctx) {
-				const { username, password } = ctx.params;
+				const { email, password } = ctx.params;
 
-				this.logger.info(`Login attempt for username: ${username}`);
+				this.logger.info(`Login attempt: ${email}`);
 
-				// Mock Database Check (Replace with your DB logic)
-				// e.g., const user = await ctx.call("users.findByUsername", { username });
-				const mockUser = null;
-
-				if (!mockUser) {
-					this.logger.warn(`Login failed: Username not found - ${username}`);
-					throw new MoleculerError(
-						"Invalid username or password",
-						401,
-						"ERR_INVALID_CREDS"
-					);
+				// 1. Cari user di PostgreSQL via Prisma
+				const user = await prisma.user.findUnique({ where: { email } });
+				if (!user) {
+					throw new MoleculerError("Invalid email or password", 401, "ERR_INVALID_CREDS");
 				}
 
-				// Mock Password Check
-				// const isMatch = await bcrypt.compare(password, mockUser.passwordHash);
-				const isMatch = false;
-
+				// 2. Verifikasi password
+				const isMatch = await bcrypt.compare(password, user.passwordHash);
 				if (!isMatch) {
-					this.logger.warn(`Login failed: Incorrect password for ${username}`);
-					throw new MoleculerError(
-						"Invalid username or password",
-						401,
-						"ERR_INVALID_CREDS"
-					);
+					throw new MoleculerError("Invalid email or password", 401, "ERR_INVALID_CREDS");
 				}
 
-				// Generate JWT Token
-				const tokenPayload = {
-					id: mockUser.id,
-					username: mockUser.username,
-					role: mockUser.role
-				};
+				// 3. Generate Access Token
+				const accessToken = this._signAccessToken(user);
 
-				const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: "1h" });
+				// 4. Generate Refresh Token & simpan ke MongoDB
+				const refreshToken = crypto.randomBytes(64).toString("hex");
+				await this._saveRefreshToken(user.id, refreshToken);
 
-				// Log successful login
-				this.logger.info(`Successful login for user: ${username} (ID: ${mockUser.id})`);
-
-				// Emit Moleculer Event (can be caught by analytics or notification service)
-				this.broker.emit("auth.user.login", {
-					userId: mockUser.id,
-					username: mockUser.username
-				});
+				this.logger.info(`Login berhasil: ${email} (ID: ${user.id})`);
+				this.broker.emit("auth.user.login", { userId: user.id, email: user.email });
 
 				return {
-					token
+					accessToken,
+					refreshToken,
+					expiresIn: JWT_EXPIRES_IN
 				};
 			}
 		},
 
-		/**
-		 * Register new user
-		 */
+		// ─── POST /auth/register ─────────────────────────────────────────────
 		register: {
 			rest: "POST /register",
 			params: {
-				username: "string|min:3",
-				password: "string|min:6",
-				email: "email"
+				name: "string|min:2|max:100",
+				email: "email",
+				password: "string|min:6"
 			},
 			async handler(ctx) {
-				const { username, email } = ctx.params;
+				const { name, email, password } = ctx.params;
 
-				// Simulate user creation logic...
-				this.logger.info(`Registering new user: ${username}, ${email}`);
+				this.logger.info(`Register: ${email}`);
 
-				// Broadcast event that a new user is created
-				// Useful to send welcome emails in another service
-				ctx.broadcast("user.created", { username, email });
+				// 1. Cek email sudah ada
+				const existing = await prisma.user.findUnique({ where: { email } });
+				if (existing) {
+					throw new MoleculerError("Email already registered", 409, "ERR_EMAIL_EXISTS");
+				}
+
+				// 2. Hash password
+				const passwordHash = await bcrypt.hash(password, 12);
+
+				// 3. Buat user di PostgreSQL
+				const user = await prisma.user.create({
+					data: { name, email, passwordHash }
+				});
+
+				this.logger.info(`User baru: ${email} (ID: ${user.id})`);
+				ctx.broadcast("user.created", { userId: user.id, name, email });
 
 				return {
-					message: "User registered successfully",
-					username,
-					email
+					message: "Registrasi berhasil",
+					user: this._sanitizeUser(user)
 				};
 			}
 		},
 
-		/**
-		 * Verify JWT Token
-		 * Used mainly by API Gateway (api.service.js) in the \`authenticate\` method.
-		 */
+		// ─── GET /auth/me ────────────────────────────────────────────────────
+		me: {
+			rest: "GET /me",
+			auth: "required",
+			async handler(ctx) {
+				const { id } = ctx.meta.user;
+
+				const user = await prisma.user.findUnique({ where: { id } });
+				if (!user) {
+					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+				}
+
+				return { user: this._sanitizeUser(user) };
+			}
+		},
+
+		// ─── POST /auth/refresh ──────────────────────────────────────────────
+		refresh: {
+			rest: "POST /refresh",
+			params: {
+				refreshToken: "string"
+			},
+			async handler(ctx) {
+				const { refreshToken } = ctx.params;
+
+				// 1. Cari token di MongoDB
+				const tokenDoc = await this._findRefreshToken(refreshToken);
+
+				if (!tokenDoc) {
+					throw new MoleculerError(
+						"Invalid refresh token",
+						401,
+						"ERR_INVALID_REFRESH_TOKEN"
+					);
+				}
+
+				if (tokenDoc.is_revoked) {
+					throw new MoleculerError(
+						"Refresh token has been revoked",
+						401,
+						"ERR_TOKEN_REVOKED"
+					);
+				}
+
+				if (new Date() > tokenDoc.expires_at) {
+					throw new MoleculerError("Refresh token expired", 401, "ERR_TOKEN_EXPIRED");
+				}
+
+				// 2. Ambil user dari PostgreSQL
+				const user = await prisma.user.findUnique({ where: { id: tokenDoc.user_id } });
+				if (!user) {
+					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+				}
+
+				// 3. Generate Access Token baru
+				const accessToken = this._signAccessToken(user);
+
+				this.logger.info(`Access token di-refresh untuk user: ${user.email}`);
+
+				return {
+					accessToken,
+					expiresIn: JWT_EXPIRES_IN
+					// user: this._sanitizeUser(user)
+				};
+			}
+		},
+
+		// ─── POST /auth/logout ───────────────────────────────────────────────
+		logout: {
+			rest: "POST /logout",
+			params: {
+				refreshToken: "string"
+			},
+			async handler(ctx) {
+				const { refreshToken } = ctx.params;
+
+				// Set is_revoked = true di MongoDB
+				const collection = await getCollection("user_tokens");
+				const result = await collection.updateOne(
+					{ refresh_token: refreshToken },
+					{ $set: { is_revoked: true } }
+				);
+
+				if (result.matchedCount === 0) {
+					throw new MoleculerError("Refresh token not found", 404, "ERR_TOKEN_NOT_FOUND");
+				}
+
+				this.logger.info("Logout berhasil — token di-revoke");
+				return { message: "Logout berhasil" };
+			}
+		},
+
+		// ─── verifyToken (internal, digunakan api.service) ──────────────────
 		verifyToken: {
 			cache: {
-				// Cache verification results for 60 seconds to improve performance on burst requests
 				ttl: 60,
 				keys: ["token"]
 			},
@@ -144,30 +217,63 @@ module.exports = {
 
 				try {
 					const decoded = jwt.verify(token, JWT_SECRET);
-					// Returning the payload which will be attached to ctx.meta.user
 					return decoded;
 				} catch (err) {
-					// Invalid token
 					this.logger.warn("Token verification failed:", err.message);
-					throw new MoleculerError("Invalid Token", 401, "ERR_INVALID_TOKEN");
+					throw new MoleculerError("Invalid token", 401, "ERR_INVALID_TOKEN");
 				}
 			}
+		}
+	},
+
+	/**
+	 * Private Methods
+	 */
+	methods: {
+		/** Generate JWT Access Token */
+		_signAccessToken(user) {
+			return jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, {
+				expiresIn: JWT_EXPIRES_IN
+			});
 		},
 
-		/**
-		 * Example of a protected route using Moleculer's meta data
-		 */
-		me: {
-			rest: "GET /me",
-			// Declare that this action requires authentication
-			auth: "required",
-			handler(ctx) {
-				// ctx.meta.user is populated by API Gateway's authenticate()
-				return {
-					message: "This is a protected route",
-					user: ctx.meta.user
-				};
-			}
+		/** Hapus field sensitif dari user object */
+		_sanitizeUser(user) {
+			const { passwordHash, ...safeUser } = user;
+			return safeUser;
+		},
+
+		/** Simpan refresh token baru ke MongoDB user_tokens */
+		async _saveRefreshToken(userId, refreshToken) {
+			const collection = await getCollection("user_tokens");
+			const expiresAt = new Date();
+			expiresAt.setDate(expiresAt.getDate() + REFRESH_EXPIRES_DAYS);
+
+			await collection.insertOne({
+				user_id: userId,
+				refresh_token: refreshToken,
+				expires_at: expiresAt,
+				is_revoked: false,
+				created_at: new Date()
+			});
+		},
+
+		/** Cari refresh token di MongoDB */
+		async _findRefreshToken(refreshToken) {
+			const collection = await getCollection("user_tokens");
+			return collection.findOne({ refresh_token: refreshToken });
 		}
+	},
+
+	/**
+	 * Service lifecycle
+	 */
+	async started() {
+		this.logger.info("✅ auth.service started — PostgreSQL + MongoDB ready");
+	},
+
+	async stopped() {
+		await prisma.$disconnect();
+		this.logger.info("auth.service stopped — Prisma disconnected");
 	}
 };

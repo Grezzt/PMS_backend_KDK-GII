@@ -10,9 +10,9 @@ const { getMongoDb, getCollection, closeMongoDb } = require("../mongodb/connecti
 const PrismaMixin = require("../mixins/prisma.mixin");
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-minimum-32-chars-change-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "2h";
-const REFRESH_EXPIRES_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS || "7", 10);
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN;
+const REFRESH_EXPIRES_DAYS = parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS, 10);
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -171,7 +171,6 @@ module.exports = {
 				return {
 					accessToken,
 					expiresIn: JWT_EXPIRES_IN
-					// user: this._sanitizeUser(user)
 				};
 			}
 		},

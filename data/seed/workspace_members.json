@@ -1,0 +1,6 @@
+[
+  { "workspaceId": "ws-1", "userId": "user-admin",   "role": "admin"  },
+  { "workspaceId": "ws-1", "userId": "user-alice",   "role": "member" },
+  { "workspaceId": "ws-1", "userId": "user-bob",     "role": "viewer" },
+  { "workspaceId": "ws-2", "userId": "user-charlie", "role": "member" }
+]

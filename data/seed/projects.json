@@ -1,0 +1,5 @@
+[
+  { "id": "proj-1", "workspaceId": "ws-1", "name": "Platform Rewrite", "status": "active",   "createdBy": "user-admin" },
+  { "id": "proj-2", "workspaceId": "ws-1", "name": "Mobile App",        "status": "active",   "createdBy": "user-admin" },
+  { "id": "proj-3", "workspaceId": "ws-2", "name": "Q2 Campaign",       "status": "active",   "createdBy": "user-charlie" }
+]

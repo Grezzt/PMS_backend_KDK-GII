@@ -1,0 +1,4 @@
+[
+  { "id": "ws-1", "name": "Engineering", "ownerId": "user-admin",   "description": "Core engineering workspace" },
+  { "id": "ws-2", "name": "Marketing",   "ownerId": "user-charlie", "description": "Marketing & campaigns" }
+]

@@ -1,17 +1,8 @@
 "use strict";
 
-const path = require("path");
 const { MoleculerError } = require("moleculer").Errors;
 const AuthMixin = require("../mixins/auth.mixin");
-
-// ---------------------------------------------------------------------------
-// Load JSON seed files — used as the in-memory data store for dev/test.
-// In production, replace these loads with real DB adapter queries.
-// ---------------------------------------------------------------------------
-const dbWorkspaces = [];
-const dbProjects = [];
-const dbWorkspaceMembers = [];
-const dbProjectMembers = [];
+const PrismaMixin = require("../mixins/prisma.mixin");
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -21,40 +12,36 @@ const dbProjectMembers = [];
 /**
  * Workspaces Service
  * ------------------
- * Owns all workspace and project membership data.
- * Loaded from JSON seed files (`data/seed/*.json`) for local dev & tests.
- *
- * Key actions:
- *   - getMemberRole       → called by auth.mixin.js to resolve a user's effective role
- *   - addWorkspaceMember  → grant/update a user's workspace role
- *   - addProjectMember    → grant/update a user's project-level role override
- *
- * Role resolution for (userId, projectId):
- *   1. project_members   → project-specific role (HIGHEST PRIORITY)
- *   2. workspace_members → inherited workspace role (FALLBACK)
- *   3. null              → no membership → auth.mixin throws 403
+ * Prisma-backed workspace/project access control, aligned with ERD.
+ * Uses AuthMixin for contextual authorization and JWT (via api.service).
  *
  * @type {ServiceSchema}
  */
 module.exports = {
 	name: "workspaces",
 
-	// Merge AuthMixin for RBAC checks
-	mixins: [AuthMixin],
+	// Prisma for DB, AuthMixin for role-based access
+	mixins: [PrismaMixin, AuthMixin],
 
 	settings: {
-		fields: ["id", "name", "description", "ownerId"]
+		fields: ["id", "name", "description", "ownerId", "createdAt", "updatedAt"]
 	},
 
 	actions: {
 		// -----------------------------------------------------------------------
-		// LIST WORKSPACES
+		// LIST WORKSPACES (user-owned or member)
 		// -----------------------------------------------------------------------
 		list: {
 			rest: "GET /",
 			auth: "required",
-			handler(ctx) {
-				return dbWorkspaces;
+			async handler(ctx) {
+				const userId = ctx.meta.user.id;
+				return this.prisma.workspace.findMany({
+					where: {
+						OR: [{ ownerId: userId }, { members: { some: { userId } } }]
+					},
+					orderBy: { createdAt: "desc" }
+				});
 			}
 		},
 
@@ -65,10 +52,128 @@ module.exports = {
 			rest: "GET /:id",
 			auth: "required",
 			params: { id: "string" },
-			handler(ctx) {
-				const ws = dbWorkspaces.find(w => w.id === ctx.params.id);
+			async handler(ctx) {
+				const { id } = ctx.params;
+				await this.checkWorkspaceAccess(ctx, id, "viewer");
+				const ws = await this.prisma.workspace.findUnique({ where: { id } });
 				if (!ws) throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
 				return ws;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// CREATE A WORKSPACE
+		// -----------------------------------------------------------------------
+		create: {
+			rest: "POST /",
+			auth: "required",
+			params: {
+				name: "string",
+				description: { type: "string", optional: true },
+				members: {
+					type: "array",
+					optional: true,
+					items: {
+						type: "object",
+						props: {
+							userId: "string",
+							role: {
+								type: "enum",
+								values: ["admin", "member", "viewer"],
+								optional: true
+							}
+						}
+					}
+				}
+			},
+			async handler(ctx) {
+				const { name, description, members } = ctx.params;
+				const userId = ctx.meta.user.id;
+
+				const workspace = await this.prisma.workspace.create({
+					data: {
+						name,
+						description: description || null,
+						ownerId: userId
+					}
+				});
+
+				const memberRows = this._normalizeMembers(members);
+				if (memberRows.length > 0) {
+					await this.prisma.workspaceMember.createMany({
+						data: memberRows.map(row => ({
+							workspaceId: workspace.id,
+							userId: row.userId,
+							role: row.role
+						})),
+						skipDuplicates: true
+					});
+				}
+
+				this.logger.info(`[workspaces] Created workspace "${name}" by user=${userId}`);
+				return workspace;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// UPDATE A WORKSPACE
+		// -----------------------------------------------------------------------
+		update: {
+			rest: "PATCH /:id",
+			auth: "required",
+			params: {
+				id: "string",
+				name: { type: "string", optional: true },
+				description: { type: "string", optional: true }
+			},
+			async handler(ctx) {
+				const { id, name, description } = ctx.params;
+				if (name === undefined && description === undefined) {
+					throw new MoleculerError(
+						"At least one field must be provided",
+						422,
+						"ERR_UNPROCESSABLE_ENTITY"
+					);
+				}
+				await this.checkWorkspaceAccess(ctx, id, "admin");
+
+				const existing = await this.prisma.workspace.findUnique({ where: { id } });
+				if (!existing) {
+					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+				}
+
+				const workspace = await this.prisma.workspace.update({
+					where: { id },
+					data: {
+						name,
+						description
+					}
+				});
+
+				this.logger.info(`[workspaces] User=${ctx.meta.user.id} updated workspace=${id}`);
+				return workspace;
+			}
+		},
+
+		// -----------------------------------------------------------------------
+		// DELETE A WORKSPACE
+		// -----------------------------------------------------------------------
+		remove: {
+			rest: "DELETE /:id",
+			auth: "required",
+			params: { id: "string" },
+			async handler(ctx) {
+				const { id } = ctx.params;
+				await this.checkWorkspaceAccess(ctx, id, "admin");
+				const existing = await this.prisma.workspace.findUnique({ where: { id } });
+				if (!existing) {
+					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+				}
+				const workspace = await this.prisma.workspace.delete({ where: { id } });
+				this.logger.info(
+					`[workspaces] Workspace=${id} deleted by user=${ctx.meta.user.id}`
+				);
+				return { deleted: true, workspace };
 			}
 		},
 
@@ -96,48 +201,53 @@ module.exports = {
 				projectId: { type: "string", optional: true },
 				workspaceId: { type: "string", optional: true }
 			},
-			handler(ctx) {
+			async handler(ctx) {
 				const { userId, projectId, workspaceId } = ctx.params;
 
-				// ---- Resolve role for a PROJECT ----
 				if (projectId) {
-					// Step 1: check project_members for a direct override
-					const projectOverride = dbProjectMembers.find(
-						m => m.projectId === projectId && m.userId === userId
-					);
-					if (projectOverride) {
-						this.logger.debug(
-							`[workspaces] Project override — user=${userId} project=${projectId} role=${projectOverride.role}`
-						);
-						return { role: projectOverride.role };
+					// Step 1: project_members override
+					const projectMember = await this.prisma.projectMember.findUnique({
+						where: { projectId_userId: { projectId, userId } }
+					});
+					if (projectMember) {
+						return { role: this._normalizeRole(projectMember.role) };
 					}
 
-					// Step 2: fall back to workspace_members via the project's workspaceId
-					const project = dbProjects.find(p => p.id === projectId);
-					if (!project) {
-						this.logger.warn(`[workspaces] Project not found: ${projectId}`);
-						return { role: null };
-					}
+					// Step 2: project leader gets admin role
+					const project = await this.prisma.project.findUnique({
+						where: { id: projectId },
+						select: { leaderId: true, workspaceId: true }
+					});
+					if (!project) return { role: null };
+					if (project.leaderId === userId) return { role: "admin" };
 
-					const wsRole = dbWorkspaceMembers.find(
-						m => m.workspaceId === project.workspaceId && m.userId === userId
-					);
+					// Step 3: workspace owner gets admin role
+					const workspace = await this.prisma.workspace.findUnique({
+						where: { id: project.workspaceId },
+						select: { ownerId: true }
+					});
+					if (workspace?.ownerId === userId) return { role: "admin" };
 
-					if (wsRole) {
-						this.logger.debug(
-							`[workspaces] Workspace fallback — user=${userId} workspace=${project.workspaceId} role=${wsRole.role}`
-						);
-					}
+					// Step 4: fallback to workspace_members
+					const wsMember = await this.prisma.workspaceMember.findUnique({
+						where: { workspaceId_userId: { workspaceId: project.workspaceId, userId } }
+					});
 
-					return { role: wsRole ? wsRole.role : null };
+					return { role: wsMember ? this._normalizeRole(wsMember.role) : null };
 				}
 
-				// ---- Resolve role for a WORKSPACE ----
 				if (workspaceId) {
-					const wsRole = dbWorkspaceMembers.find(
-						m => m.workspaceId === workspaceId && m.userId === userId
-					);
-					return { role: wsRole ? wsRole.role : null };
+					const workspace = await this.prisma.workspace.findUnique({
+						where: { id: workspaceId },
+						select: { ownerId: true }
+					});
+					if (workspace?.ownerId === userId) return { role: "admin" };
+
+					const wsMember = await this.prisma.workspaceMember.findUnique({
+						where: { workspaceId_userId: { workspaceId, userId } }
+					});
+
+					return { role: wsMember ? this._normalizeRole(wsMember.role) : null };
 				}
 
 				throw new MoleculerError(
@@ -149,7 +259,7 @@ module.exports = {
 		},
 
 		// -----------------------------------------------------------------------
-		// MEMBER MANAGEMENT — add or update a workspace membership
+		// MEMBER MANAGEMENT — workspace membership
 		// -----------------------------------------------------------------------
 		addWorkspaceMember: {
 			rest: "POST /:workspaceId/members",
@@ -161,136 +271,45 @@ module.exports = {
 			},
 			async handler(ctx) {
 				const { workspaceId, userId, role } = ctx.params;
+				await this.checkWorkspaceAccess(ctx, workspaceId, "admin");
 
-				const existing = dbWorkspaceMembers.find(
-					m => m.workspaceId === workspaceId && m.userId === userId
-				);
-				if (existing) {
-					existing.role = role;
-					await this.broker.emit("cache.clean.workspaces", {});
-					return existing;
-				}
-
-				const member = { workspaceId, userId, role, joinedAt: new Date().toISOString() };
-				dbWorkspaceMembers.push(member);
-				await this.broker.emit("cache.clean.workspaces", {});
-				return member;
+				return this.prisma.workspaceMember.upsert({
+					where: { workspaceId_userId: { workspaceId, userId } },
+					create: {
+						workspaceId,
+						userId,
+						role: this._normalizeRole(role, { toEnum: true })
+					},
+					update: { role: this._normalizeRole(role, { toEnum: true }) }
+				});
 			}
-		},
-		// -----------------------------------------------------------------------
-		// LIST PROJECTS
-		// -----------------------------------------------------------------------
-		listProjects: {
-			rest: "GET /projects",
-			auth: "required",
-			params: {
-				workspaceId: { type: "string", optional: true }
-			},
-			async handler(ctx) {
-				const { workspaceId } = ctx.params;
-				if (workspaceId) {
-					await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
-					return dbProjects.filter(p => p.workspaceId === workspaceId);
-				}
-				return dbProjects;
-			}
-		},
+		}
+	},
 
-		// -----------------------------------------------------------------------
-		// GET A SINGLE PROJECT
-		// -----------------------------------------------------------------------
-		getProject: {
-			rest: "GET /projects/:id",
-			auth: "required",
-			params: { id: "string" },
-			async handler(ctx) {
-				const { id } = ctx.params;
-				const project = dbProjects.find(p => p.id === id);
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-				await this.checkProjectAccess(ctx, id, "viewer");
-				return project;
+	methods: {
+		_normalizeMembers(members) {
+			if (!Array.isArray(members)) return [];
+			const unique = new Map();
+			for (const item of members) {
+				if (!item || !item.userId) continue;
+				unique.set(item.userId, {
+					userId: item.userId,
+					role: this._normalizeRole(item.role || "member", { toEnum: true })
+				});
 			}
+			return Array.from(unique.values());
 		},
-
-		// -----------------------------------------------------------------------
-		// CREATE A PROJECT
-		// -----------------------------------------------------------------------
-		createProject: {
-			rest: "POST /projects",
-			auth: "required",
-			params: {
-				workspaceId: "string",
-				name: "string",
-				description: { type: "string", optional: true }
-			},
-			async handler(ctx) {
-				const { workspaceId, name, description } = ctx.params;
-				await this.checkWorkspaceAccess(ctx, workspaceId, "member");
-				const newProject = {
-					id: "proj-" + Date.now(),
-					workspaceId,
-					name,
-					description: description || "",
-					status: "active",
-					createdBy: ctx.meta.user.id,
-					createdAt: new Date().toISOString()
-				};
-				dbProjects.push(newProject);
-				this.logger.info(
-					`[workspaces] Created project "${name}" by user=${ctx.meta.user.id}`
-				);
-				return newProject;
-			}
-		},
-
-		// -----------------------------------------------------------------------
-		// UPDATE A PROJECT
-		// -----------------------------------------------------------------------
-		updateProject: {
-			rest: "PATCH /projects/:id",
-			auth: "required",
-			params: {
-				id: "string",
-				name: { type: "string", optional: true },
-				description: { type: "string", optional: true },
-				status: {
-					type: "enum",
-					values: ["active", "archived", "completed"],
-					optional: true
-				}
-			},
-			async handler(ctx) {
-				const { id, name, description, status } = ctx.params;
-				const project = dbProjects.find(p => p.id === id);
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-				const effectiveRole = await this.checkProjectAccess(ctx, id, "member");
-				this.logger.info(
-					`[workspaces] User=${ctx.meta.user.id} (role="${effectiveRole}") updating project=${id}`
-				);
-				if (name !== undefined) project.name = name;
-				if (description !== undefined) project.description = description;
-				if (status !== undefined) project.status = status;
-				project.updatedAt = new Date().toISOString();
-				project.updatedBy = ctx.meta.user.id;
-				return project;
-			}
-		},
-
-		// -----------------------------------------------------------------------
-		// DELETE A PROJECT
-		// -----------------------------------------------------------------------
-		removeProject: {
-			rest: "DELETE /projects/:id",
-			auth: "required",
-			params: { id: "string" },
-			async handler(ctx) {
-				const { id } = ctx.params;
-				const idx = dbProjects.findIndex(p => p.id === id);
-				if (idx === -1) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-				await this.checkProjectAccess(ctx, id, "admin");
-				const [removed] = dbProjects.splice(idx, 1);
-				this.logger.info(`[workspaces] Project=${id} deleted by user=${ctx.meta.user.id}`);
-				return { deleted: true, project: removed };
+		_normalizeRole(role, options = {}) {
+			if (!role) return null;
+			const lower = String(role).toLowerCase();
+			if (!options.toEnum) return lower;
+			switch (lower) {
+				case "admin":
+					return "ADMIN";
+				case "viewer":
+					return "VIEWER";
+				default:
+					return "MEMBER";
 			}
 		}
 	}

@@ -1,14 +1,8 @@
 "use strict";
 
-const path = require("path");
 const { MoleculerError } = require("moleculer").Errors;
 const AuthMixin = require("../mixins/auth.mixin");
-
-// ---------------------------------------------------------------------------
-// Load JSON seed files for local dev & test.
-// In production, replace these with real DB adapter calls.
-// ---------------------------------------------------------------------------
-const dbProjects = [];
+const PrismaMixin = require("../mixins/prisma.mixin");
 
 /**
  * @typedef {import('moleculer').ServiceSchema} ServiceSchema
@@ -18,41 +12,34 @@ const dbProjects = [];
 /**
  * Projects Service
  * ----------------
- * Demonstrates how to use AuthMixin for contextual role-based access control.
- *
- * Key actions:
- *   - projects.list   → any authenticated user with workspace membership can list
- *   - projects.get    → any authenticated user with at least "viewer" role can view
- *   - projects.create → requires "admin" or "member" workspace role
- *   - projects.update → requires "admin" or "member" project/workspace role  ← main demo
- *   - projects.delete → requires "admin" project/workspace role
- *
- * Data-flow for projects.update:
- *   HTTP PATCH /api/projects/:id
- *     → api.service authenticate()  → ctx.meta.user = { id, username }
- *     → projects.update handler
- *         → this.checkProjectAccess(ctx, id, "member")
- *             → ctx.call("workspaces.getMemberRole", { userId, projectId })
- *             → throws 403 if user is "viewer" or has no membership
- *         → DB update (JSON mutation for now)
- *     → returns updated project
+ * Prisma-backed CRUD for projects, separated from workspaces service.
+ * Uses AuthMixin for contextual authorization via workspaces.getMemberRole.
  *
  * @type {ServiceSchema}
  */
 module.exports = {
 	name: "projects",
 
-	// Merge in AuthMixin to get checkProjectAccess / checkWorkspaceAccess methods
-	mixins: [AuthMixin],
+	// Prisma for DB, AuthMixin for role-based access
+	mixins: [PrismaMixin, AuthMixin],
 
 	settings: {
-		fields: ["id", "workspaceId", "name", "description", "status", "createdBy"]
+		fields: [
+			"id",
+			"workspaceId",
+			"name",
+			"description",
+			"visibility",
+			"statusConfig",
+			"leaderId",
+			"createdAt",
+			"updatedAt"
+		]
 	},
 
 	actions: {
 		// -----------------------------------------------------------------------
-		// LIST all projects
-		// Requires: any authenticated user (membership checked inside)
+		// LIST projects
 		// -----------------------------------------------------------------------
 		list: {
 			rest: "GET /",
@@ -63,19 +50,28 @@ module.exports = {
 			async handler(ctx) {
 				const { workspaceId } = ctx.params;
 
-				// If workspaceId provided, verify caller has at least viewer access
 				if (workspaceId) {
 					await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
-					return dbProjects.filter(p => p.workspaceId === workspaceId);
+					return this.prisma.project.findMany({
+						where: { workspaceId },
+						orderBy: { createdAt: "desc" }
+					});
 				}
 
-				return dbProjects;
+				return this.prisma.project.findMany({
+					where: {
+						OR: [
+							{ leaderId: ctx.meta.user.id },
+							{ members: { some: { userId: ctx.meta.user.id } } }
+						]
+					},
+					orderBy: { createdAt: "desc" }
+				});
 			}
 		},
 
 		// -----------------------------------------------------------------------
 		// GET a single project
-		// Requires: viewer (or higher) in the project
 		// -----------------------------------------------------------------------
 		get: {
 			rest: "GET /:id",
@@ -83,21 +79,15 @@ module.exports = {
 			params: { id: "string" },
 			async handler(ctx) {
 				const { id } = ctx.params;
-
-				// Throws 404 before we even check access if the project doesn't exist
-				const project = dbProjects.find(p => p.id === id);
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-
-				// Even viewers can read — this also confirms membership
 				await this.checkProjectAccess(ctx, id, "viewer");
-
+				const project = await this.prisma.project.findUnique({ where: { id } });
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
 				return project;
 			}
 		},
 
 		// -----------------------------------------------------------------------
 		// CREATE a new project
-		// Requires: member (or admin) in the target workspace
 		// -----------------------------------------------------------------------
 		create: {
 			rest: "POST /",
@@ -105,82 +95,66 @@ module.exports = {
 			params: {
 				workspaceId: "string",
 				name: "string",
-				description: { type: "string", optional: true }
+				description: { type: "string", optional: true },
+				visibility: { type: "enum", values: ["public", "private"], optional: true },
+				statusConfig: { type: "object", optional: true }
 			},
 			async handler(ctx) {
-				const { workspaceId, name, description } = ctx.params;
-
-				// Must be at least a member in the workspace to create a project
+				const { workspaceId, name, description, visibility, statusConfig } = ctx.params;
 				await this.checkWorkspaceAccess(ctx, workspaceId, "member");
 
-				const newProject = {
-					id: `proj-${Date.now()}`,
-					workspaceId,
-					name,
-					description: description || "",
-					status: "active",
-					createdBy: ctx.meta.user.id,
-					createdAt: new Date().toISOString()
-				};
-
-				// In production: await adapter.insert(newProject)
-				dbProjects.push(newProject);
+				const project = await this.prisma.project.create({
+					data: {
+						workspaceId,
+						name,
+						description: description || null,
+						leaderId: ctx.meta.user.id,
+						visibility: this._normalizeVisibility(visibility),
+						statusConfig: statusConfig || undefined
+					}
+				});
 
 				this.logger.info(
 					`[projects] Created project "${name}" by user=${ctx.meta.user.id}`
 				);
-				return newProject;
+				return project;
 			}
 		},
 
 		// -----------------------------------------------------------------------
-		// UPDATE an existing project  ← PRIMARY DEMO ACTION
-		// Requires: member or admin role in the project (viewers cannot edit)
+		// UPDATE a project
 		// -----------------------------------------------------------------------
 		update: {
 			rest: "PATCH /:id",
-			auth: "required", // api.service enforces token first
+			auth: "required",
 			params: {
 				id: "string",
 				name: { type: "string", optional: true },
 				description: { type: "string", optional: true },
-				status: {
-					type: "enum",
-					values: ["active", "archived", "completed"],
-					optional: true
-				}
+				visibility: { type: "enum", values: ["public", "private"], optional: true },
+				statusConfig: { type: "object", optional: true }
 			},
 			async handler(ctx) {
-				const { id, name, description, status } = ctx.params;
+				const { id, name, description, visibility, statusConfig } = ctx.params;
+				await this.checkProjectAccess(ctx, id, "member");
 
-				// 1. Find the project (fail fast with 404 before auth check)
-				const project = dbProjects.find(p => p.id === id);
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				const project = await this.prisma.project.update({
+					where: { id },
+					data: {
+						name,
+						description,
+						visibility: visibility ? this._normalizeVisibility(visibility) : undefined,
+						statusConfig
+					}
+				});
 
-				// 2. CONTEXTUAL AUTHORIZATION
-				//    Requires at least "member" role (admin also passes due to hierarchy).
-				//    Viewers will receive: 403 ERR_FORBIDDEN
-				//    Non-members will receive: 403 ERR_FORBIDDEN
-				const effectiveRole = await this.checkProjectAccess(ctx, id, "member");
-
-				this.logger.info(
-					`[projects] User=${ctx.meta.user.id} (role="${effectiveRole}") updating project=${id}`
-				);
-
-				// 3. Apply updates (JSON mutation; replace with adapter.updateById in prod)
-				if (name !== undefined) project.name = name;
-				if (description !== undefined) project.description = description;
-				if (status !== undefined) project.status = status;
-				project.updatedAt = new Date().toISOString();
-				project.updatedBy = ctx.meta.user.id;
-
+				this.logger.info(`[projects] User=${ctx.meta.user.id} updated project=${id}`);
 				return project;
 			}
 		},
 
 		// -----------------------------------------------------------------------
 		// DELETE a project
-		// Requires: admin role only (members cannot delete)
 		// -----------------------------------------------------------------------
 		delete: {
 			rest: "DELETE /:id",
@@ -188,18 +162,58 @@ module.exports = {
 			params: { id: "string" },
 			async handler(ctx) {
 				const { id } = ctx.params;
-
-				const idx = dbProjects.findIndex(p => p.id === id);
-				if (idx === -1) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-
-				// Only admins can delete a project
 				await this.checkProjectAccess(ctx, id, "admin");
-
-				const [removed] = dbProjects.splice(idx, 1);
+				const project = await this.prisma.project.delete({ where: { id } });
 				this.logger.info(`[projects] Project=${id} deleted by user=${ctx.meta.user.id}`);
-
-				return { deleted: true, project: removed };
+				return { deleted: true, project };
 			}
+		},
+
+		// -----------------------------------------------------------------------
+		// MEMBER MANAGEMENT — project membership override
+		// -----------------------------------------------------------------------
+		addMember: {
+			rest: "POST /:projectId/members",
+			auth: "required",
+			params: {
+				projectId: "string",
+				userId: "string",
+				role: { type: "enum", values: ["admin", "member", "viewer"], default: "member" }
+			},
+			async handler(ctx) {
+				const { projectId, userId, role } = ctx.params;
+				await this.checkProjectAccess(ctx, projectId, "admin");
+
+				return this.prisma.projectMember.upsert({
+					where: { projectId_userId: { projectId, userId } },
+					create: {
+						projectId,
+						userId,
+						role: this._normalizeRole(role, { toEnum: true })
+					},
+					update: { role: this._normalizeRole(role, { toEnum: true }) }
+				});
+			}
+		}
+	},
+
+	methods: {
+		_normalizeRole(role, options = {}) {
+			if (!role) return null;
+			const lower = String(role).toLowerCase();
+			if (!options.toEnum) return lower;
+			switch (lower) {
+				case "admin":
+					return "ADMIN";
+				case "viewer":
+					return "VIEWER";
+				default:
+					return "MEMBER";
+			}
+		},
+		_normalizeVisibility(value) {
+			if (!value) return undefined;
+			return String(value).toLowerCase() === "public" ? "PUBLIC" : "PRIVATE";
 		}
 	}
 };

@@ -1,5 +1,7 @@
 "use strict";
 
+const path = require("path");
+const serveStatic = require("serve-static");
 const ApiGateway = require("moleculer-web");
 
 /**
@@ -55,6 +57,20 @@ module.exports = {
 		use: [],
 
 		routes: [
+			{
+				path: "/api-docs",
+				authorization: false,
+				authentication: false,
+				mappingPolicy: "restrict",
+				use: [serveStatic(path.join(__dirname, "..", "public", "api-docs"))]
+			},
+			{
+				path: "/swagger",
+				authorization: false,
+				authentication: false,
+				mappingPolicy: "restrict",
+				use: [serveStatic(path.join(__dirname, "..", "public", "swagger"))]
+			},
 			{
 				path: "/api",
 

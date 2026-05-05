@@ -863,6 +863,354 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Documents",
+			"description": "Grup endpoint untuk upload dokumen proyek dan attachment task (Backblaze + Prisma).",
+			"item": [
+				{
+					"name": "1. Upload Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "projectId",
+									"value": "project-uuid-here",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/documents/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"upload"
+							]
+						},
+						"description": "Upload dokumen proyek. Field form-data wajib dikirim sebelum file."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Upload Task Attachment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "taskId",
+									"value": "task-uuid-here",
+									"type": "text"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/documents/task-attachments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"task-attachments"
+							]
+						},
+						"description": "Upload attachment untuk task tertentu."
+					},
+					"response": []
+				},
+				{
+					"name": "3. List Documents",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents?projectId=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents"
+							],
+							"query": [
+								{
+									"key": "projectId",
+									"value": ""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. Get Document By ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "document-uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. Download Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id",
+								"download"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "document-uuid-here"
+								}
+							]
+						},
+						"description": "Akan redirect (302) ke presigned URL Backblaze."
+					},
+					"response": []
+				},
+				{
+					"name": "6. Delete Document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "document-uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. List Task Attachments",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/task/:taskId/attachments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"task",
+								":taskId",
+								"attachments"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": "task-uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8. Download Task Attachment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/task-attachments/:id/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"task-attachments",
+								":id",
+								"download"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "attachment-uuid-here"
+								}
+							]
+						},
+						"description": "Akan redirect (302) ke presigned URL Backblaze."
+					},
+					"response": []
+				},
+				{
+					"name": "9. Delete Task Attachment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/documents/task-attachments/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"documents",
+								"task-attachments",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "attachment-uuid-here"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [

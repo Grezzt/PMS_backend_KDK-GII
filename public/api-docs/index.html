@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>PMS Backend API Docs</title>
+		<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+		<!-- <style>
+			:root {
+				color-scheme: light;
+			}
+			body {
+				margin: 0;
+				padding: 0;
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+			}
+			api-reference {
+				height: 100vh;
+				display: block;
+			}
+		</style> -->
+	</head>
+	<body>
+		<api-reference data-url="/openapi.yaml"></api-reference>
+	</body>
+<!doctype html>
+<html>
+  <head>
+    <title>Scalar API Reference</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <div id="app"></div>
+
+    <!-- Load the Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+
+    <!-- Initialize the Scalar API Reference -->
+    <script>
+      Scalar.createApiReference('#app', {
+        // The URL of the OpenAPI/Swagger document
+        url: '/openapi.yaml',
+        // Avoid CORS issues
+        proxyUrl: 'https://proxy.scalar.com',
+      })
+    </script>
+  </body>
+</html>

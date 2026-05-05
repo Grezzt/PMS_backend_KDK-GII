@@ -146,6 +146,7 @@ model Project {
   leader    User      @relation("ProjectLeader", fields: [leaderId], references: [id])
   members   ProjectMember[]
   tasks     Task[]
+  documents Document[]
 
   @@map("projects")
 }
@@ -195,6 +196,24 @@ model Task {
   attachments TaskAttachment[]
 
   @@map("tasks")
+}
+
+// =============================================================================
+// DOCUMENT
+// =============================================================================
+
+model Document {
+  id         String   @id @default(uuid())
+  projectId  String   @map("project_id")
+  fileName   String   @map("file_name")
+  storageKey String   @map("storage_key")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
 }
 
 // =============================================================================
@@ -287,6 +306,7 @@ model TaskAttachment {
   fileUrl    String   @map("file_url")
   uploadedBy String   @map("uploaded_by")
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relationships
   task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)

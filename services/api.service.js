@@ -58,7 +58,7 @@ module.exports = {
 			{
 				path: "/api",
 
-				whitelist: ["auth.**", "users.**", "workspaces.**", "projects.**"],
+				whitelist: ["auth.**", "users.**", "workspaces.**", "projects.**", "documents.**"],
 
 				// Route-level Express middlewares. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Middlewares
 				use: [],
@@ -77,7 +77,21 @@ module.exports = {
 				autoAliases: true,
 
 				aliases: {
-					// Tambahkan custom aliases jika autoAliases tidak cukup
+					"POST /documents/upload": {
+						type: "multipart",
+						action: "documents.uploadDocument"
+					},
+					"POST /documents/task-attachments": {
+						type: "multipart",
+						action: "documents.uploadTaskAttachment"
+					}
+				},
+
+				busboyConfig: {
+					limits: {
+						files: 1,
+						fileSize: 25 * 1024 * 1024
+					}
 				},
 
 				/**

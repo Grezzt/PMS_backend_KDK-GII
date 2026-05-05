@@ -259,6 +259,49 @@ module.exports = {
 		},
 
 		// -----------------------------------------------------------------------
+		// LIST WORKSPACE MEMBERS
+		// -----------------------------------------------------------------------
+		listMembers: {
+			rest: "GET /:workspaceId/members",
+			auth: "required",
+			params: { workspaceId: "string" },
+			async handler(ctx) {
+				const { workspaceId } = ctx.params;
+				await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
+
+				const workspace = await this.prisma.workspace.findUnique({
+					where: { id: workspaceId },
+					select: { ownerId: true, owner: { select: { id: true, name: true, email: true } } }
+				});
+				if (!workspace) throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+
+				const members = await this.prisma.workspaceMember.findMany({
+					where: { workspaceId },
+					include: { user: { select: { id: true, name: true, email: true } } },
+					orderBy: { createdAt: "asc" }
+				});
+
+				const ownerEntry = {
+					userId: workspace.ownerId,
+					role: "admin",
+					isOwner: true,
+					user: workspace.owner
+				};
+
+				const memberList = members
+					.filter(m => m.userId !== workspace.ownerId)
+					.map(m => ({
+						userId: m.userId,
+						role: this._normalizeRole(m.role),
+						isOwner: false,
+						user: m.user
+					}));
+
+				return [ownerEntry, ...memberList];
+			}
+		},
+
+		// -----------------------------------------------------------------------
 		// MEMBER MANAGEMENT — workspace membership
 		// -----------------------------------------------------------------------
 		addWorkspaceMember: {

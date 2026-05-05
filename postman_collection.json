@@ -610,6 +610,43 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "7. List Workspace Members",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/workspaces/:workspaceId/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"workspaces",
+								":workspaceId",
+								"members"
+							],
+							"variable": [
+								{
+									"key": "workspaceId",
+									"value": "workspace-uuid-here"
+								}
+							]
+						},
+						"description": "Ambil daftar semua anggota workspace. Owner selalu muncul pertama dengan isOwner=true. Minimal role viewer dibutuhkan."
+					},
+					"response": []
 				}
 			]
 		},
@@ -859,6 +896,43 @@
 								}
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "7. List Project Members",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/projects/:projectId/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								":projectId",
+								"members"
+							],
+							"variable": [
+								{
+									"key": "projectId",
+									"value": "project-uuid-here"
+								}
+							]
+						},
+						"description": "Ambil daftar semua anggota project. Leader selalu muncul pertama dengan isLeader=true. Minimal role viewer dibutuhkan."
 					},
 					"response": []
 				}

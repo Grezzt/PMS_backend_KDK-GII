@@ -169,6 +169,44 @@ components:
                 updatedAt:
                     type: string
                     format: date-time
+        WorkspaceMember:
+            type: object
+            properties:
+                userId:
+                    type: string
+                role:
+                    type: string
+                    enum: [admin, member, viewer]
+                isOwner:
+                    type: boolean
+                user:
+                    type: object
+                    properties:
+                        id:
+                            type: string
+                        name:
+                            type: string
+                        email:
+                            type: string
+        ProjectMember:
+            type: object
+            properties:
+                userId:
+                    type: string
+                role:
+                    type: string
+                    enum: [admin, member, viewer]
+                isLeader:
+                    type: boolean
+                user:
+                    type: object
+                    properties:
+                        id:
+                            type: string
+                        name:
+                            type: string
+                        email:
+                            type: string
 security:
     - bearerAuth: []
 paths:
@@ -530,6 +568,33 @@ paths:
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/workspaces/{workspaceId}/members:
+        get:
+            tags: [Workspaces]
+            summary: List workspace members
+            description: Returns all members of a workspace including the owner. Requires at least `viewer` role.
+            parameters:
+                - name: workspaceId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of workspace members
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/WorkspaceMember"
+                "401":
+                    $ref: "#/components/responses/Unauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "500":
+                    $ref: "#/components/responses/InternalError"
         post:
             tags: [Workspaces]
             summary: Add workspace member
@@ -703,6 +768,33 @@ paths:
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/projects/{projectId}/members:
+        get:
+            tags: [Projects]
+            summary: List project members
+            description: Returns all explicit project members plus the project leader. Requires at least `viewer` role.
+            parameters:
+                - name: projectId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                "200":
+                    description: List of project members
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/ProjectMember"
+                "401":
+                    $ref: "#/components/responses/Unauthorized"
+                "403":
+                    $ref: "#/components/responses/Forbidden"
+                "404":
+                    $ref: "#/components/responses/NotFound"
+                "500":
+                    $ref: "#/components/responses/InternalError"
         post:
             tags: [Projects]
             summary: Add project member

@@ -170,6 +170,49 @@ module.exports = {
 		},
 
 		// -----------------------------------------------------------------------
+		// LIST PROJECT MEMBERS
+		// -----------------------------------------------------------------------
+		listMembers: {
+			rest: "GET /:projectId/members",
+			auth: "required",
+			params: { projectId: "string" },
+			async handler(ctx) {
+				const { projectId } = ctx.params;
+				await this.checkProjectAccess(ctx, projectId, "viewer");
+
+				const project = await this.prisma.project.findUnique({
+					where: { id: projectId },
+					select: { leaderId: true, leader: { select: { id: true, name: true, email: true } } }
+				});
+				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+
+				const members = await this.prisma.projectMember.findMany({
+					where: { projectId },
+					include: { user: { select: { id: true, name: true, email: true } } },
+					orderBy: { createdAt: "asc" }
+				});
+
+				const leaderEntry = {
+					userId: project.leaderId,
+					role: "admin",
+					isLeader: true,
+					user: project.leader
+				};
+
+				const memberList = members
+					.filter(m => m.userId !== project.leaderId)
+					.map(m => ({
+						userId: m.userId,
+						role: this._normalizeRole(m.role),
+						isLeader: false,
+						user: m.user
+					}));
+
+				return [leaderEntry, ...memberList];
+			}
+		},
+
+		// -----------------------------------------------------------------------
 		// MEMBER MANAGEMENT — project membership override
 		// -----------------------------------------------------------------------
 		addMember: {

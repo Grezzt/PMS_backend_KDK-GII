@@ -76,66 +76,24 @@ module.exports = {
 
 				whitelist: ["auth.**", "users.**", "workspaces.**", "projects.**", "documents.**"],
 
-				// Route-level Express middlewares. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Middlewares
 				use: [],
-
-				// Enable/disable parameter merging method. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Disable-merging
 				mergeParams: true,
-
-				// Enable authentication. Implement the logic into `authenticate` method. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Authentication
 				authentication: true,
-
-				// Enable authorization. Implement the logic into `authorize` method. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Authorization
 				authorization: true,
 
-				// The auto-alias feature allows you to declare your route alias directly in your services.
-				// The gateway will dynamically build the full routes from service schema.
+				// autoAliases membaca `rest:` dari setiap action di service
 				autoAliases: true,
 
-				aliases: {
-					"POST /documents/upload": {
-						type: "multipart",
-						action: "documents.uploadDocument"
-					},
-					"POST /documents/task-attachments": {
-						type: "multipart",
-						action: "documents.uploadTaskAttachment"
-					}
-				},
+	
 
+				// Konfigurasi busboy untuk semua multipart request di route ini
 				busboyConfig: {
 					limits: {
 						files: 1,
-						fileSize: 25 * 1024 * 1024
+						fileSize: 25 * 1024 * 1024 // 25 MB
 					}
 				},
 
-				/**
-				 * Before call hook. You can check the request.
-				 * @param {Context} ctx
-				 * @param {Object} route
-				 * @param {IncomingRequest} req
-				 * @param {ServerResponse} res
-				 * @param {Object} data
-				 *
-				onBeforeCall(ctx, route, req, res) {
-					// Set request headers to context meta
-					ctx.meta.userAgent = req.headers["user-agent"];
-				}, */
-
-				/**
-				 * After call hook. You can modify the data.
-				 * @param {Context} ctx
-				 * @param {Object} route
-				 * @param {IncomingRequest} req
-				 * @param {ServerResponse} res
-				 * @param {Object} data
-				onAfterCall(ctx, route, req, res, data) {
-					// Async function which return with Promise
-					return doSomething(ctx, res, data);
-				}, */
-
-				// Calling options. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Calling-options
 				callOptions: {},
 
 				bodyParsers: {
@@ -149,10 +107,10 @@ module.exports = {
 					}
 				},
 
-				// Mapping policy setting. More info: https://moleculer.services/docs/0.15/moleculer-web.html#Mapping-policy
-				mappingPolicy: "all", // Available values: "all", "restrict"
+				// "restrict" = hanya alias eksplisit + autoAliases yang aktif
+				// Mencegah auto-mapping path (/documents/upload → documents.upload) yang tidak ada
+				mappingPolicy: "restrict",
 
-				// Enable/disable logging
 				logging: true
 			}
 		],

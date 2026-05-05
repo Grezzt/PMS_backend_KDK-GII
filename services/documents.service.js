@@ -39,22 +39,40 @@ module.exports = {
 
 	actions: {
 		uploadDocument: {
+			rest: {
+				method: "POST",
+				path: "/upload",
+				type: "multipart"
+			},
 			auth: "required",
+			timeout: 0, // Tidak ada timeout untuk upload file (upload bisa lama tergantung ukuran & koneksi)
 			async handler(ctx) {
-				const multipart = this._requireMultipart(ctx);
-				const projectId = multipart.projectId;
+				// moleculer-web 0.11: form fields langsung di ctx.params
+				// file metadata: ctx.params.$filename, ctx.params.$mimetype
+				// file stream: ctx.params (stream object)
+				const params = ctx.params;
 
+				// Mulai buffer stream SEGERA sebelum operasi async apapun
+				// agar tidak kehilangan data stream (race condition)
+				const fileStream = (ctx.options && ctx.options.stream) || params;
+				if (!fileStream || typeof fileStream.pipe !== "function") {
+					throw new MoleculerError("File stream not found", 422, "ERR_FILE_REQUIRED");
+				}
+				const bodyPromise = this._streamToBuffer(fileStream);
+
+				const projectId = params.projectId;
 				if (!projectId) {
 					throw new MoleculerError("projectId is required", 422, "ERR_VALIDATION");
 				}
 
 				await this.checkProjectAccess(ctx, projectId, "member");
 
-				const file = ctx.params;
-				const { fileName, contentType } = this._getFileMeta(file);
+				const { fileName, contentType } = this._getFileMeta(params);
 				const storageKey = this._buildStorageKey("documents", projectId, fileName);
 
-				await this._uploadToBucket(storageKey, file, contentType);
+				// Tunggu buffer selesai lalu upload
+				const body = await bodyPromise;
+				await this._uploadToBucket(storageKey, body, contentType);
 
 				const document = await this.prisma.document.create({
 					data: {
@@ -83,11 +101,25 @@ module.exports = {
 		},
 
 		uploadTaskAttachment: {
+			rest: {
+				method: "POST",
+				path: "/task-attachments",
+				type: "multipart"
+			},
 			auth: "required",
+			timeout: 0, // Tidak ada timeout untuk upload file
 			async handler(ctx) {
-				const multipart = this._requireMultipart(ctx);
-				const taskId = multipart.taskId;
+				// moleculer-web 0.11: form fields langsung di ctx.params
+				const params = ctx.params;
 
+				// Mulai buffer stream SEGERA sebelum operasi async apapun
+				const fileStream = (ctx.options && ctx.options.stream) || params;
+				if (!fileStream || typeof fileStream.pipe !== "function") {
+					throw new MoleculerError("File stream not found", 422, "ERR_FILE_REQUIRED");
+				}
+				const bodyPromise = this._streamToBuffer(fileStream);
+
+				const taskId = params.taskId;
 				if (!taskId) {
 					throw new MoleculerError("taskId is required", 422, "ERR_VALIDATION");
 				}
@@ -103,11 +135,11 @@ module.exports = {
 
 				await this.checkProjectAccess(ctx, task.projectId, "member");
 
-				const file = ctx.params;
-				const { fileName, contentType } = this._getFileMeta(file);
+				const { fileName, contentType } = this._getFileMeta(params);
 				const storageKey = this._buildStorageKey("task-attachments", taskId, fileName);
 
-				await this._uploadToBucket(storageKey, file, contentType);
+				const body = await bodyPromise;
+				await this._uploadToBucket(storageKey, body, contentType);
 
 				const fileUrl = this._buildPublicUrl(storageKey);
 				const attachment = await this.prisma.taskAttachment.create({
@@ -371,6 +403,8 @@ module.exports = {
 			});
 		},
 
+		// [DEPRECATED] Tidak digunakan di moleculer-web 0.11+
+		// Form fields sekarang ada di ctx.params langsung, bukan ctx.meta.$multipart
 		_requireMultipart(ctx) {
 			if (!ctx.meta || !ctx.meta.$multipart) {
 				throw new MoleculerError(
@@ -382,13 +416,18 @@ module.exports = {
 			return ctx.meta.$multipart;
 		},
 
-		_getFileMeta(file) {
-			if (!file || typeof file.pipe !== "function") {
-				throw new MoleculerError("File stream not found", 422, "ERR_FILE_REQUIRED");
+		// params = ctx.params dari handler multipart moleculer-web 0.11
+		// Berisi: $filename, $mimetype, $fieldname, $encoding + semua form fields
+		_getFileMeta(params) {
+			const filename = params.$filename;
+			const mimetype = params.$mimetype;
+
+			if (!filename) {
+				throw new MoleculerError("File not found in request", 422, "ERR_FILE_REQUIRED");
 			}
 
-			const fileName = this._sanitizeFileName(file.filename || "upload");
-			const contentType = file.mimetype || "application/octet-stream";
+			const fileName = this._sanitizeFileName(filename);
+			const contentType = mimetype || "application/octet-stream";
 			return { fileName, contentType };
 		},
 
@@ -411,19 +450,47 @@ module.exports = {
 		async _uploadToBucket(storageKey, stream, contentType) {
 			this._assertStorageConfig();
 
+			// AWS SDK v3 + Backblaze B2 membutuhkan ContentLength yang diketahui.
+			// Kita buffer dulu stream ke Buffer agar ContentLength bisa di-set.
+			let body;
+			if (Buffer.isBuffer(stream)) {
+				body = stream;
+			} else {
+				body = await this._streamToBuffer(stream);
+			}
+
 			const command = new PutObjectCommand({
 				Bucket: this._storageConfig.bucket,
 				Key: storageKey,
-				Body: stream,
-				ContentType: contentType
+				Body: body,
+				ContentType: contentType,
+				ContentLength: body.length
 			});
 
 			try {
 				await this.s3.send(command);
 			} catch (error) {
-				this.logger.error("Failed to upload to Backblaze", error);
-				throw new MoleculerError("Upload failed", 500, "ERR_UPLOAD_FAILED");
+				this.logger.error("Failed to upload to Backblaze B2", {
+					code: error.Code || error.code,
+					message: error.message,
+					status: error.$metadata?.httpStatusCode
+				});
+				throw new MoleculerError(
+					`Upload failed: ${error.message}`,
+					error.$metadata?.httpStatusCode || 500,
+					"ERR_UPLOAD_FAILED"
+				);
 			}
+		},
+
+		// Helper: konversi ReadableStream ke Buffer
+		_streamToBuffer(stream) {
+			return new Promise((resolve, reject) => {
+				const chunks = [];
+				stream.on("data", chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+				stream.on("end", () => resolve(Buffer.concat(chunks)));
+				stream.on("error", reject);
+			});
 		},
 
 		async _deleteFromBucket(storageKey) {

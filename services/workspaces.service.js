@@ -89,6 +89,26 @@ module.exports = {
 			async handler(ctx) {
 				const { name, description, members } = ctx.params;
 				const userId = ctx.meta.user.id;
+				const memberRows = this._normalizeMembers(members);
+
+				if (memberRows.length > 0) {
+					const memberIds = memberRows.map(row => row.userId);
+					const existingUsers = await this.prisma.user.findMany({
+						where: { id: { in: memberIds } },
+						select: { id: true }
+					});
+					const existingIds = new Set(existingUsers.map(user => user.id));
+					const missingUserIds = memberIds.filter(id => !existingIds.has(id));
+
+					if (missingUserIds.length > 0) {
+						throw new MoleculerError(
+							"Some members do not exist",
+							422,
+							"ERR_INVALID_PARAMS",
+							{ missingUserIds }
+						);
+					}
+				}
 
 				const workspace = await this.prisma.workspace.create({
 					data: {
@@ -98,7 +118,6 @@ module.exports = {
 					}
 				});
 
-				const memberRows = this._normalizeMembers(members);
 				if (memberRows.length > 0) {
 					await this.prisma.workspaceMember.createMany({
 						data: memberRows.map(row => ({
@@ -271,14 +290,18 @@ module.exports = {
 
 				const workspace = await this.prisma.workspace.findUnique({
 					where: { id: workspaceId },
-					select: { ownerId: true, owner: { select: { id: true, name: true, email: true } } }
+					select: {
+						ownerId: true,
+						owner: { select: { id: true, name: true, email: true } }
+					}
 				});
-				if (!workspace) throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+				if (!workspace)
+					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
 
 				const members = await this.prisma.workspaceMember.findMany({
 					where: { workspaceId },
 					include: { user: { select: { id: true, name: true, email: true } } },
-					orderBy: { createdAt: "asc" }
+					orderBy: { joinedAt: "asc" }
 				});
 
 				const ownerEntry = {
@@ -315,6 +338,14 @@ module.exports = {
 			async handler(ctx) {
 				const { workspaceId, userId, role } = ctx.params;
 				await this.checkWorkspaceAccess(ctx, workspaceId, "admin");
+
+				const user = await this.prisma.user.findUnique({
+					where: { id: userId },
+					select: { id: true }
+				});
+				if (!user) {
+					throw new MoleculerError("User not found", 404, "ERR_NOT_FOUND");
+				}
 
 				return this.prisma.workspaceMember.upsert({
 					where: { workspaceId_userId: { workspaceId, userId } },

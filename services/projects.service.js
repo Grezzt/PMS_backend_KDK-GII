@@ -182,14 +182,17 @@ module.exports = {
 
 				const project = await this.prisma.project.findUnique({
 					where: { id: projectId },
-					select: { leaderId: true, leader: { select: { id: true, name: true, email: true } } }
+					select: {
+						leaderId: true,
+						leader: { select: { id: true, name: true, email: true } }
+					}
 				});
 				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
 
 				const members = await this.prisma.projectMember.findMany({
 					where: { projectId },
 					include: { user: { select: { id: true, name: true, email: true } } },
-					orderBy: { createdAt: "asc" }
+					orderBy: { joinedAt: "asc" }
 				});
 
 				const leaderEntry = {
@@ -226,6 +229,45 @@ module.exports = {
 			async handler(ctx) {
 				const { projectId, userId, role } = ctx.params;
 				await this.checkProjectAccess(ctx, projectId, "admin");
+
+				const project = await this.prisma.project.findUnique({
+					where: { id: projectId },
+					select: { workspaceId: true }
+				});
+				if (!project) {
+					throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				}
+
+				const user = await this.prisma.user.findUnique({
+					where: { id: userId },
+					select: { id: true }
+				});
+				if (!user) {
+					throw new MoleculerError("User not found", 404, "ERR_NOT_FOUND");
+				}
+
+				const workspace = await this.prisma.workspace.findUnique({
+					where: { id: project.workspaceId },
+					select: { ownerId: true }
+				});
+				const isOwner = workspace?.ownerId === userId;
+				const workspaceMember = await this.prisma.workspaceMember.findUnique({
+					where: {
+						workspaceId_userId: {
+							workspaceId: project.workspaceId,
+							userId
+						}
+					}
+				});
+
+				if (!isOwner && !workspaceMember) {
+					throw new MoleculerError(
+						"User must be a workspace member before being added to the project",
+						422,
+						"ERR_INVALID_PARAMS",
+						{ workspaceId: project.workspaceId, userId }
+					);
+				}
 
 				return this.prisma.projectMember.upsert({
 					where: { projectId_userId: { projectId, userId } },

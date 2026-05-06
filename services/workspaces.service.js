@@ -129,6 +129,16 @@ module.exports = {
 					});
 				}
 
+				await this.prisma.workspaceMember.upsert({
+					where: { workspaceId_userId: { workspaceId: workspace.id, userId } },
+					create: {
+						workspaceId: workspace.id,
+						userId,
+						role: "ADMIN"
+					},
+					update: { role: "ADMIN" }
+				});
+
 				this.logger.info(`[workspaces] Created workspace "${name}" by user=${userId}`);
 				return workspace;
 			}

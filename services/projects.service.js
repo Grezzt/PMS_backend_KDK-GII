@@ -114,6 +114,21 @@ module.exports = {
 					}
 				});
 
+				await this.prisma.projectMember.upsert({
+					where: {
+						projectId_userId: {
+							projectId: project.id,
+							userId: ctx.meta.user.id
+						}
+					},
+					create: {
+						projectId: project.id,
+						userId: ctx.meta.user.id,
+						role: "ADMIN"
+					},
+					update: { role: "ADMIN" }
+				});
+
 				this.logger.info(
 					`[projects] Created project "${name}" by user=${ctx.meta.user.id}`
 				);

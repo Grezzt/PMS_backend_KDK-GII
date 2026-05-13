@@ -139,6 +139,28 @@ module.exports = {
 	 */
 	methods: {
 		/**
+		 * Custom error handler — strips the `name` field from all error responses.
+		 * Ensures all errors follow the unified schema: { message, code, type, data }
+		 *
+		 * @param {IncomingRequest} req
+		 * @param {ServerResponse} res
+		 * @param {Error} err
+		 */
+		onError(req, res, err) {
+			const code = err.code && Number.isInteger(err.code) ? err.code : 500;
+			const body = {
+				message: err.message || "Internal Server Error",
+				code,
+				type: err.type || "ERR_INTERNAL",
+				data: err.data !== undefined ? err.data : null
+			};
+
+			res.setHeader("Content-Type", "application/json; charset=utf-8");
+			res.writeHead(code);
+			res.end(JSON.stringify(body));
+		},
+
+		/**
 		 * Authenticate the request. It check the `Authorization` token value in the request header.
 		 * Check the token value & resolve the user by the token.
 		 * The resolved user will be available in `ctx.meta.user`

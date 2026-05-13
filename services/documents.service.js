@@ -93,9 +93,15 @@ module.exports = {
 					}
 				});
 
+				ctx.meta.$statusCode = 201;
 				return {
-					document,
-					url: this._buildPublicUrl(storageKey)
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: {
+						...document,
+						url: this._buildPublicUrl(storageKey)
+					}
 				};
 			}
 		},
@@ -163,9 +169,15 @@ module.exports = {
 					}
 				});
 
+				ctx.meta.$statusCode = 201;
 				return {
-					attachment,
-					url: fileUrl
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: {
+						...attachment,
+						url: fileUrl
+					}
 				};
 			}
 		},
@@ -180,10 +192,17 @@ module.exports = {
 				const { projectId } = ctx.params;
 				await this.checkProjectAccess(ctx, projectId, "viewer");
 
-				return this.prisma.document.findMany({
+				const list = await this.prisma.document.findMany({
 					where: { projectId },
 					orderBy: { createdAt: "desc" }
 				});
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: { list }
+				};
 			}
 		},
 
@@ -199,11 +218,17 @@ module.exports = {
 				});
 
 				if (!document) {
-					throw new MoleculerError("Document not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				await this.checkProjectAccess(ctx, document.projectId, "viewer");
-				return document;
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: document
+				};
 			}
 		},
 
@@ -262,7 +287,8 @@ module.exports = {
 					}
 				});
 
-				return { deleted: true };
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		},
 
@@ -279,15 +305,22 @@ module.exports = {
 				});
 
 				if (!task) {
-					throw new MoleculerError("Task not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				await this.checkProjectAccess(ctx, task.projectId, "viewer");
 
-				return this.prisma.taskAttachment.findMany({
+				const list = await this.prisma.taskAttachment.findMany({
 					where: { taskId: task.id },
 					orderBy: { createdAt: "desc" }
 				});
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: { list }
+				};
 			}
 		},
 
@@ -373,7 +406,8 @@ module.exports = {
 					}
 				});
 
-				return { deleted: true };
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		}
 	},

@@ -47,11 +47,17 @@ module.exports = {
 
 				const user = await this.prisma.user.findUnique({ where: { id } });
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+					// Security: jangan reveal apakah user ada atau tidak
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				this.logger.info(`[users] Profile fetched: ${user.email} (ID: ${user.id})`);
-				return { user: this._sanitizeUser(user) };
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: this._sanitizeUser(user)
+				};
 			}
 		},
 
@@ -77,7 +83,7 @@ module.exports = {
 				// Cari user yang sedang login
 				const user = await this.prisma.user.findUnique({ where: { id } });
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				const updateData = {};
@@ -91,11 +97,7 @@ module.exports = {
 				if (email !== undefined && email !== user.email) {
 					const emailTaken = await this.prisma.user.findUnique({ where: { email } });
 					if (emailTaken) {
-						throw new MoleculerError(
-							"Email already used by another account",
-							409,
-							"ERR_EMAIL_TAKEN"
-						);
+						throw new MoleculerError("Email already used", 409, "ERR_CONFLICT");
 					}
 					updateData.email = email;
 				}
@@ -104,11 +106,7 @@ module.exports = {
 				if (password !== undefined) {
 					// Wajib sertakan currentPassword untuk verifikasi
 					if (!currentPassword) {
-						throw new MoleculerError(
-							"currentPassword is required to change your password",
-							400,
-							"ERR_CURRENT_PASSWORD_REQUIRED"
-						);
+						throw new MoleculerError("Bad Request", 400, "ERR_BAD_REQUEST");
 					}
 					const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
 					if (!isMatch) {
@@ -124,7 +122,12 @@ module.exports = {
 				// Jika tidak ada field yang diubah, return profil saat ini
 				if (Object.keys(updateData).length === 0) {
 					this.logger.debug(`[users] No changes submitted by user=${id}`);
-					return { user: this._sanitizeUser(user) };
+					return {
+						message: "OK",
+						code: 200,
+						type: "SUCCESS",
+						data: this._sanitizeUser(user)
+					};
 				}
 
 				const updated = await this.prisma.user.update({
@@ -140,7 +143,12 @@ module.exports = {
 					changes: Object.keys(updateData).filter(k => k !== "passwordHash")
 				});
 
-				return { message: "Profil berhasil diperbarui", user: this._sanitizeUser(updated) };
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: this._sanitizeUser(updated)
+				};
 			}
 		},
 
@@ -160,11 +168,16 @@ module.exports = {
 
 				const user = await this.prisma.user.findUnique({ where: { id } });
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				this.logger.debug(`[users] User ${ctx.meta.user.id} viewed profile of user=${id}`);
-				return { user: this._sanitizeUser(user) };
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: this._sanitizeUser(user)
+				};
 			}
 		},
 
@@ -191,10 +204,10 @@ module.exports = {
 			},
 			async handler(ctx) {
 				// Hanya user dengan role 'admin' di JWT payload yang bisa mengakses list
-				// Catatan: ini adalah global role di JWT, bukan workspace/project role
+				// Security: gunakan pesan generic "Forbidden" tanpa detail role
 				const requestingUser = ctx.meta.user;
 				if (requestingUser.role !== "admin") {
-					throw new MoleculerError(403, "ERR_FORBIDDEN");
+					throw new MoleculerError("Forbidden", 403, "ERR_FORBIDDEN");
 				}
 
 				const { search, page = 1, limit = 20 } = ctx.params;
@@ -232,12 +245,17 @@ module.exports = {
 				);
 
 				return {
-					data: users,
-					pagination: {
-						page,
-						limit,
-						total,
-						totalPages: Math.ceil(total / limit)
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: {
+						list: users,
+						pagination: {
+							page,
+							limit,
+							total,
+							totalPages: Math.ceil(total / limit)
+						}
 					}
 				};
 			}

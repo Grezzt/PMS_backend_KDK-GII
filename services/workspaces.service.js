@@ -36,12 +36,19 @@ module.exports = {
 			auth: "required",
 			async handler(ctx) {
 				const userId = ctx.meta.user.id;
-				return this.prisma.workspace.findMany({
+				const workspaces = await this.prisma.workspace.findMany({
 					where: {
 						OR: [{ ownerId: userId }, { members: { some: { userId } } }]
 					},
 					orderBy: { createdAt: "desc" }
 				});
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: { list: workspaces }
+				};
 			}
 		},
 
@@ -56,8 +63,14 @@ module.exports = {
 				const { id } = ctx.params;
 				await this.checkWorkspaceAccess(ctx, id, "viewer");
 				const ws = await this.prisma.workspace.findUnique({ where: { id } });
-				if (!ws) throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
-				return ws;
+				if (!ws) throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: ws
+				};
 			}
 		},
 
@@ -102,9 +115,9 @@ module.exports = {
 
 					if (missingUserIds.length > 0) {
 						throw new MoleculerError(
-							"Some members do not exist",
+							"Unprocessable Entity",
 							422,
-							"ERR_INVALID_PARAMS",
+							"ERR_UNPROCESSABLE_ENTITY",
 							{ missingUserIds }
 						);
 					}
@@ -140,7 +153,14 @@ module.exports = {
 				});
 
 				this.logger.info(`[workspaces] Created workspace "${name}" by user=${userId}`);
-				return workspace;
+
+				ctx.meta.$statusCode = 201;
+				return {
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: workspace
+				};
 			}
 		},
 
@@ -159,7 +179,7 @@ module.exports = {
 				const { id, name, description } = ctx.params;
 				if (name === undefined && description === undefined) {
 					throw new MoleculerError(
-						"At least one field must be provided",
+						"Unprocessable Entity",
 						422,
 						"ERR_UNPROCESSABLE_ENTITY"
 					);
@@ -168,7 +188,7 @@ module.exports = {
 
 				const existing = await this.prisma.workspace.findUnique({ where: { id } });
 				if (!existing) {
-					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				const workspace = await this.prisma.workspace.update({
@@ -180,7 +200,12 @@ module.exports = {
 				});
 
 				this.logger.info(`[workspaces] User=${ctx.meta.user.id} updated workspace=${id}`);
-				return workspace;
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: workspace
+				};
 			}
 		},
 
@@ -196,13 +221,15 @@ module.exports = {
 				await this.checkWorkspaceAccess(ctx, id, "admin");
 				const existing = await this.prisma.workspace.findUnique({ where: { id } });
 				if (!existing) {
-					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
-				const workspace = await this.prisma.workspace.delete({ where: { id } });
+				await this.prisma.workspace.delete({ where: { id } });
 				this.logger.info(
 					`[workspaces] Workspace=${id} deleted by user=${ctx.meta.user.id}`
 				);
-				return { deleted: true, workspace };
+
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		},
 
@@ -280,9 +307,9 @@ module.exports = {
 				}
 
 				throw new MoleculerError(
-					"Either projectId or workspaceId must be provided",
+					"Bad Request",
 					400,
-					"ERR_INVALID_PARAMS"
+					"ERR_BAD_REQUEST"
 				);
 			}
 		},
@@ -306,7 +333,7 @@ module.exports = {
 					}
 				});
 				if (!workspace)
-					throw new MoleculerError("Workspace not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 
 				const members = await this.prisma.workspaceMember.findMany({
 					where: { workspaceId },
@@ -330,7 +357,12 @@ module.exports = {
 						user: m.user
 					}));
 
-				return [ownerEntry, ...memberList];
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: { list: [ownerEntry, ...memberList] }
+				};
 			}
 		},
 
@@ -354,10 +386,10 @@ module.exports = {
 					select: { id: true }
 				});
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
-				return this.prisma.workspaceMember.upsert({
+				const member = await this.prisma.workspaceMember.upsert({
 					where: { workspaceId_userId: { workspaceId, userId } },
 					create: {
 						workspaceId,
@@ -366,6 +398,14 @@ module.exports = {
 					},
 					update: { role: this._normalizeRole(role, { toEnum: true }) }
 				});
+
+				ctx.meta.$statusCode = 201;
+				return {
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: member
+				};
 			}
 		}
 	},

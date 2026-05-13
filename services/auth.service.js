@@ -102,9 +102,12 @@ module.exports = {
 				this.logger.info(`User baru: ${email} (ID: ${user.id})`);
 				ctx.broadcast("user.created", { userId: user.id, name, email });
 
+				ctx.meta.$statusCode = 201;
 				return {
-					message: "Registrasi berhasil",
-					user: this._sanitizeUser(user)
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: this._sanitizeUser(user)
 				};
 			}
 		},
@@ -118,10 +121,16 @@ module.exports = {
 
 				const user = await this.prisma.user.findUnique({ where: { id } });
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+					// Security: jangan reveal apakah user ada atau tidak
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
-				return { user: this._sanitizeUser(user) };
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: this._sanitizeUser(user)
+				};
 			}
 		},
 
@@ -138,29 +147,22 @@ module.exports = {
 				const tokenDoc = await this._findRefreshToken(refreshToken);
 
 				if (!tokenDoc) {
-					throw new MoleculerError(
-						"Invalid refresh token",
-						401,
-						"ERR_INVALID_REFRESH_TOKEN"
-					);
+					// Security: semua kondisi token tidak valid → Unauthorized
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				if (tokenDoc.is_revoked) {
-					throw new MoleculerError(
-						"Refresh token has been revoked",
-						401,
-						"ERR_TOKEN_REVOKED"
-					);
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				if (new Date() > tokenDoc.expires_at) {
-					throw new MoleculerError("Refresh token expired", 401, "ERR_TOKEN_EXPIRED");
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				// 2. Ambil user dari PostgreSQL
 				const user = await this.prisma.user.findUnique({ where: { id: tokenDoc.user_id } });
 				if (!user) {
-					throw new MoleculerError("User not found", 404, "ERR_USER_NOT_FOUND");
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 
 				// 3. Generate Access Token baru
@@ -192,11 +194,12 @@ module.exports = {
 				);
 
 				if (result.matchedCount === 0) {
-					throw new MoleculerError("Refresh token not found", 404, "ERR_TOKEN_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				this.logger.info("Logout berhasil — token di-revoke");
-				return { message: "Logout berhasil" };
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		},
 
@@ -217,7 +220,7 @@ module.exports = {
 					return decoded;
 				} catch (err) {
 					this.logger.warn("Token verification failed:", err.message);
-					throw new MoleculerError("Invalid token", 401, "ERR_INVALID_TOKEN");
+					throw new MoleculerError("Unauthorized", 401, "ERR_UNAUTHORIZED");
 				}
 			}
 		}

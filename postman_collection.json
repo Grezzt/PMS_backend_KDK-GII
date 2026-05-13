@@ -1,1327 +1,1174 @@
 {
-	"info": {
-		"_postman_id": "0df81e05-2d4e-4f24-9b2f-db3bfb81096a",
-		"name": "Moleculer JS Microservice Auth API",
-		"description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — access token dan refresh token akan otomatis tersimpan ke env variable `jwt_token` dan `refresh_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"description": "Grup endpoint terkait autentikasi (Registrasi, Login, Profil, Refresh, Logout).",
-			"item": [
-				{
-					"name": "1. User Registration",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe\",\n    \"password\": \"password123\",\n    \"email\": \"johndoe@email.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"register"
-							]
-						},
-						"description": "Mendaftarkan pengguna baru ke sistem."
-					},
-					"response": []
-				},
-				{
-					"name": "2. User Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.accessToken) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
-									"    pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
-									"    console.log(\"Tokens automatically saved to environment variables!\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"admin@pms.dev\",\n    \"password\": \"password123\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
-						},
-						"description": "Login dan dapatkan JWT Access Token & Refresh Token.\n\n*Catatan: Script Postman pada endpoint ini telah dikonfigurasi untuk menangkap nilai token balasan secara otomatis dan memindahkannya ke Environment Variable `jwt_token` dan `refresh_token`. Anda tinggal mengeksekusi request berikutnya tanpa perlu copy-paste token manual!*"
-					},
-					"response": []
-				},
-				{
-					"name": "3. Get My Profile (Protected)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/auth/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"me"
-							]
-						},
-						"description": "Endpoint yang terotorisasi. Hanya pengguna yang menyematkan `Bearer Token` di bagian HTTP header (Authorization) yang dapat mengakses ini. Token tersebut diambil otomatis dari hasil login."
-					},
-					"response": []
-				},
-				{
-					"name": "4. Refresh Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.accessToken) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
-									"    console.log(\"New Access Token automatically saved!\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/refresh",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"refresh"
-							]
-						},
-						"description": "Memperbarui Access Token yang sudah expired menggunakan Refresh Token."
-					},
-					"response": []
-				},
-				{
-					"name": "5. Logout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/logout",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"logout"
-							]
-						},
-						"description": "Logout dan revoke Refresh Token agar tidak bisa digunakan lagi."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Users",
-			"description": "Grup endpoint terkait manajemen profil pengguna.",
-			"item": [
-				{
-					"name": "1. Get My Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Ambil profil user yang sedang login."
-					},
-					"response": []
-				},
-				{
-					"name": "2. Update My Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe Updated\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/users/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Update profil user yang login. Field yang bisa diubah: name, email, password. Jika update password, wajib sertakan currentPassword."
-					},
-					"response": []
-				},
-				{
-					"name": "3. Get User By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "user-uuid-here"
-								}
-							]
-						},
-						"description": "Lihat profil publik user lain."
-					},
-					"response": []
-				},
-				{
-					"name": "4. List Users (Admin Only)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users?page=1&limit=20&search=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								},
-								{
-									"key": "search",
-									"value": ""
-								}
-							]
-						},
-						"description": "List semua user. Hanya bisa diakses admin global. Mendukung filter pencarian nama atau email, dan pagination."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Workspaces",
-			"description": "Grup endpoint untuk CRUD workspace dan member management.",
-			"item": [
-				{
-					"name": "1. List Workspaces",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "2. Get Workspace By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "3. Create Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Marketing\",\n    \"description\": \"Workspace marketing\",\n    \"members\": [\n        { \"userId\": \"user-uuid-1\", \"role\": \"member\" },\n        { \"userId\": \"user-uuid-2\", \"role\": \"viewer\" }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Update Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Marketing Updated\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Delete Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "6. Add Workspace Member",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"user-uuid-here\",\n    \"role\": \"member\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:workspaceId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Workspace Members",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:workspaceId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": "workspace-uuid-here"
-								}
-							]
-						},
-						"description": "Ambil daftar semua anggota workspace. Owner selalu muncul pertama dengan isOwner=true. Minimal role viewer dibutuhkan."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Projects",
-			"description": "Grup endpoint untuk CRUD project dan member management.",
-			"item": [
-				{
-					"name": "1. List Projects",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects?workspaceId=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects"
-							],
-							"query": [
-								{
-									"key": "workspaceId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "2. Get Project By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "3. Create Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"workspaceId\": \"workspace-uuid-here\",\n    \"name\": \"Website Revamp\",\n    \"description\": \"Project redesign\",\n    \"visibility\": \"private\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Update Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Website Revamp v2\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Delete Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "6. Add Project Member",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"user-uuid-here\",\n    \"role\": \"member\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects/:projectId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":projectId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Project Members",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:projectId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":projectId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here"
-								}
-							]
-						},
-						"description": "Ambil daftar semua anggota project. Leader selalu muncul pertama dengan isLeader=true. Minimal role viewer dibutuhkan."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Documents",
-			"description": "Grup endpoint untuk upload dokumen proyek dan attachment task (Backblaze + Prisma).",
-			"item": [
-				{
-					"name": "1. Upload Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/api/documents/upload",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"upload"
-							]
-						},
-						"description": "Upload dokumen proyek. Field form-data wajib dikirim sebelum file."
-					},
-					"response": []
-				},
-				{
-					"name": "2. Upload Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "taskId",
-									"value": "task-uuid-here",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments"
-							]
-						},
-						"description": "Upload attachment untuk task tertentu."
-					},
-					"response": []
-				},
-				{
-					"name": "3. List Documents",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents?projectId=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents"
-							],
-							"query": [
-								{
-									"key": "projectId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Get Document By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Download Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id",
-								"download"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						},
-						"description": "Akan redirect (302) ke presigned URL Backblaze."
-					},
-					"response": []
-				},
-				{
-					"name": "6. Delete Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Task Attachments",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task/:taskId/attachments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task",
-								":taskId",
-								"attachments"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "task-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "8. Download Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments/:id/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments",
-								":id",
-								"download"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "attachment-uuid-here"
-								}
-							]
-						},
-						"description": "Akan redirect (302) ke presigned URL Backblaze."
-					},
-					"response": []
-				},
-				{
-					"name": "9. Delete Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "attachment-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "refresh_token",
-			"value": "",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "ddd04fae-a7f8-473e-999f-8b43dfbdfa85",
+    "name": "PMS Backend API Postman Documentations",
+    "description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — access token dan refresh token akan otomatis tersimpan ke env variable `jwt_token` dan `refresh_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28256932",
+    "_collection_link": "https://go.postman.co/collection/28256932-ddd04fae-a7f8-473e-999f-8b43dfbdfa85?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "1. User Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"admin\",\n    \"password\": \"admin123\",\n    \"email\": \"admin@gmail.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Mendaftarkan pengguna baru ke sistem."
+          },
+          "response": []
+        },
+        {
+          "name": "2. User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.accessToken) {",
+                  "    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
+                  "    console.log(\"Tokens automatically saved to environment variables!\");",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@gmail.com\",\n    \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login dan dapatkan JWT Access Token & Refresh Token.\n\n*Catatan: Script Postman pada endpoint ini telah dikonfigurasi untuk menangkap nilai token balasan secara otomatis dan memindahkannya ke Environment Variable `jwt_token` dan `refresh_token`. Anda tinggal mengeksekusi request berikutnya tanpa perlu copy-paste token manual!*"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get My Profile (Protected)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Endpoint yang terotorisasi. Hanya pengguna yang menyematkan `Bearer Token` di bagian HTTP header (Authorization) yang dapat mengakses ini. Token tersebut diambil otomatis dari hasil login."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.accessToken) {",
+                  "    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+                  "    console.log(\"New Access Token automatically saved!\");",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"854c12f4b53309ba883717668806af8aaee81b6ab8fbe5031b55c10360b5d6180a5cd2b070b1bc32de27de876dbc4723f30915c94db9902840fc34c17f084d3a\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Memperbarui Access Token yang sudah expired menggunakan Refresh Token."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"12803f3cee4df8a0b917a38b3fd2c4ebc93dcee5c7eaa0ac9d9f6d91c6a3abc958dc160d1b879496af9619bfca469d77c30db30522f2176c2a1f6c55553acf2e\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout dan revoke Refresh Token agar tidak bisa digunakan lagi."
+          },
+          "response": []
+        }
+      ],
+      "description": "Grup endpoint terkait autentikasi (Registrasi, Login, Profil, Refresh, Logout)."
+    },
+    {
+      "name": "Users Service",
+      "item": [
+        {
+          "name": "1. Get My Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Ambil profil user yang sedang login."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Update My Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Update profil user yang login. Field yang bisa diubah: name, email, password. Jika update password, wajib sertakan currentPassword."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get User By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "58002969-8546-4567-9f56-e42bbe1ab5c4"
+                }
+              ]
+            },
+            "description": "Lihat profil publik user lain."
+          },
+          "response": []
+        },
+        {
+          "name": "4. List Users (Admin Only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=20&search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "List semua user. Hanya bisa diakses admin global. Mendukung filter pencarian nama atau email, dan pagination."
+          },
+          "response": []
+        }
+      ],
+      "description": "Grup endpoint terkait manajemen profil pengguna."
+    },
+    {
+      "name": "Workspaces Service",
+      "item": [
+        {
+          "name": "1. List Workspaces",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get Workspace By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "5c77729e-dae8-47ad-9687-fcddde400be3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Create Workspace",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"KDK\",\n    \"description\": \"Workspace marketing KDK\",\n    \"members\": [\n        { \"userId\": \"d05f651d-e8de-4827-869f-452dea8622ea\", \"role\": \"member\" }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workspaces",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Update Workspace",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Marketing Updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "5c77729e-dae8-47ad-9687-fcddde400be3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Delete Workspace",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "workspace-uuid-here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. Add Workspace Member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"aa652ead-4c22-4c25-8b90-332eee293653\",\n    \"role\": \"member\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:workspaceId/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":workspaceId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "workspaceId",
+                  "value": "d05f651d-e8de-4827-869f-452dea8622ea"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7. List Workspace Members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:workspaceId/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":workspaceId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "workspaceId",
+                  "value": "3a594c1d-5838-4ab8-9bf5-38331d82b60f"
+                }
+              ]
+            },
+            "description": "Ambil daftar semua anggota workspace. Owner selalu muncul pertama dengan isOwner=true. Minimal role viewer dibutuhkan."
+          },
+          "response": []
+        }
+      ],
+      "description": "Grup endpoint untuk CRUD workspace dan member management."
+    },
+    {
+      "name": "Projects Service",
+      "item": [
+        {
+          "name": "1. List Projects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects?workspaceId=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ],
+              "query": [
+                {
+                  "key": "workspaceId",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get Project By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "project-uuid-here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Create Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workspaceId\": \"094e17a9-ba31-4304-bc58-b6ac03ae2e02\",\n    \"name\": \"Website Revamp 202\",\n    \"description\": \"Project redesign\",\n    \"visibility\": \"public\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Update Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Website Revamp v2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "project-uuid-here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Delete Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "project-uuid-here"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. Add Project Member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"user-10\",\n    \"role\": \"member\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/:projectId/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                ":projectId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "abd40de9-1fbe-4909-8d91-2d956e99dca7"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7. List Project Members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:projectId/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                ":projectId",
+                "members"
+              ],
+              "variable": [
+                {
+                  "key": "projectId",
+                  "value": "abd40de9-1fbe-4909-8d91-2d956e99dca7"
+                }
+              ]
+            },
+            "description": "Ambil daftar semua anggota project. Leader selalu muncul pertama dengan isLeader=true. Minimal role viewer dibutuhkan."
+          },
+          "response": []
+        }
+      ],
+      "description": "Grup endpoint untuk CRUD project dan member management."
+    },
+    {
+      "name": "Documents Service",
+      "item": [
+        {
+          "name": "1. Upload Document",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "projectId",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/C:/kuliah/kdk/docs/dokumentasi Rancangan ERD.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/documents/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                "upload"
+              ]
+            },
+            "description": "Upload dokumen proyek. Field form-data wajib dikirim sebelum file."
+          },
+          "response": []
+        },
+        {
+          "name": "2. List Documents",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents?projectId=abd40de9-1fbe-4909-8d91-2d956e99dca7",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "abd40de9-1fbe-4909-8d91-2d956e99dca7"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get Document By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4767158f-552d-44a3-8bb8-a9478e317cdb"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Download Document",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id",
+                "download"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4767158f-552d-44a3-8bb8-a9478e317cdb"
+                }
+              ]
+            },
+            "description": "Akan redirect (302) ke presigned URL Backblaze."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Delete Document",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Grup endpoint untuk upload dokumen proyek dan attachment task (Backblaze + Prisma)."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ]
 }

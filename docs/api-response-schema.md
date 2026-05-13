@@ -27,10 +27,19 @@ Semua endpoint menggunakan skema response yang konsisten.
   "code": 200,
   "type": "SUCCESS",
   "data": {
-    "list": [ ...items ]
+    "list": [ ...items ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 100,
+      "totalPages": 5
+    }
   }
 }
 ```
+
+> **Query params pagination** (berlaku untuk semua list endpoint):  
+> `?page=1&limit=20` — default `page=1`, `limit=20`, max `limit=100`
 
 ### Success — Created (POST)
 ```json

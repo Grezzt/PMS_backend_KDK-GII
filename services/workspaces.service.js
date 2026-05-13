@@ -34,20 +34,37 @@ module.exports = {
 		list: {
 			rest: "GET /",
 			auth: "required",
+			params: {
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
+			},
 			async handler(ctx) {
 				const userId = ctx.meta.user.id;
-				const workspaces = await this.prisma.workspace.findMany({
-					where: {
-						OR: [{ ownerId: userId }, { members: { some: { userId } } }]
-					},
-					orderBy: { createdAt: "desc" }
-				});
+				const { page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
+
+				const where = {
+					OR: [{ ownerId: userId }, { members: { some: { userId } } }]
+				};
+
+				const [workspaces, total] = await Promise.all([
+					this.prisma.workspace.findMany({
+						where,
+						skip,
+						take: limit,
+						orderBy: { createdAt: "desc" }
+					}),
+					this.prisma.workspace.count({ where })
+				]);
 
 				return {
 					message: "OK",
 					code: 200,
 					type: "SUCCESS",
-					data: { list: workspaces }
+					data: {
+						list: workspaces,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
 				};
 			}
 		},
@@ -320,9 +337,14 @@ module.exports = {
 		listMembers: {
 			rest: "GET /:workspaceId/members",
 			auth: "required",
-			params: { workspaceId: "string" },
+			params: {
+				workspaceId: "string",
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
+			},
 			async handler(ctx) {
-				const { workspaceId } = ctx.params;
+				const { workspaceId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 				await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
 
 				const workspace = await this.prisma.workspace.findUnique({
@@ -335,11 +357,16 @@ module.exports = {
 				if (!workspace)
 					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 
-				const members = await this.prisma.workspaceMember.findMany({
-					where: { workspaceId },
-					include: { user: { select: { id: true, name: true, email: true } } },
-					orderBy: { joinedAt: "asc" }
-				});
+				const [members, totalMembers] = await Promise.all([
+					this.prisma.workspaceMember.findMany({
+						where: { workspaceId },
+						include: { user: { select: { id: true, name: true, email: true } } },
+						orderBy: { joinedAt: "asc" },
+						skip,
+						take: limit
+					}),
+					this.prisma.workspaceMember.count({ where: { workspaceId } })
+				]);
 
 				const ownerEntry = {
 					userId: workspace.ownerId,
@@ -357,11 +384,18 @@ module.exports = {
 						user: m.user
 					}));
 
+				const list = [ownerEntry, ...memberList];
+				// total termasuk owner (selalu ada)
+				const total = totalMembers + 1;
+
 				return {
 					message: "OK",
 					code: 200,
 					type: "SUCCESS",
-					data: { list: [ownerEntry, ...memberList] }
+					data: {
+						list,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
 				};
 			}
 		},

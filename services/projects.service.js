@@ -45,35 +45,45 @@ module.exports = {
 			rest: "GET /",
 			auth: "required",
 			params: {
-				workspaceId: { type: "string", optional: true }
+				workspaceId: { type: "string", optional: true },
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
 			},
 			async handler(ctx) {
-				const { workspaceId } = ctx.params;
+				const { workspaceId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 
-				let projects;
+				let where;
 				if (workspaceId) {
 					await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
-					projects = await this.prisma.project.findMany({
-						where: { workspaceId },
-						orderBy: { createdAt: "desc" }
-					});
+					where = { workspaceId };
 				} else {
-					projects = await this.prisma.project.findMany({
-						where: {
-							OR: [
-								{ leaderId: ctx.meta.user.id },
-								{ members: { some: { userId: ctx.meta.user.id } } }
-							]
-						},
-						orderBy: { createdAt: "desc" }
-					});
+					where = {
+						OR: [
+							{ leaderId: ctx.meta.user.id },
+							{ members: { some: { userId: ctx.meta.user.id } } }
+						]
+					};
 				}
+
+				const [projects, total] = await Promise.all([
+					this.prisma.project.findMany({
+						where,
+						skip,
+						take: limit,
+						orderBy: { createdAt: "desc" }
+					}),
+					this.prisma.project.count({ where })
+				]);
 
 				return {
 					message: "OK",
 					code: 200,
 					type: "SUCCESS",
-					data: { list: projects }
+					data: {
+						list: projects,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
 				};
 			}
 		},
@@ -218,9 +228,14 @@ module.exports = {
 		listMembers: {
 			rest: "GET /:projectId/members",
 			auth: "required",
-			params: { projectId: "string" },
+			params: {
+				projectId: "string",
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
+			},
 			async handler(ctx) {
-				const { projectId } = ctx.params;
+				const { projectId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 				await this.checkProjectAccess(ctx, projectId, "viewer");
 
 				const project = await this.prisma.project.findUnique({
@@ -232,11 +247,16 @@ module.exports = {
 				});
 				if (!project) throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 
-				const members = await this.prisma.projectMember.findMany({
-					where: { projectId },
-					include: { user: { select: { id: true, name: true, email: true } } },
-					orderBy: { joinedAt: "asc" }
-				});
+				const [members, totalMembers] = await Promise.all([
+					this.prisma.projectMember.findMany({
+						where: { projectId },
+						include: { user: { select: { id: true, name: true, email: true } } },
+						orderBy: { joinedAt: "asc" },
+						skip,
+						take: limit
+					}),
+					this.prisma.projectMember.count({ where: { projectId } })
+				]);
 
 				const leaderEntry = {
 					userId: project.leaderId,
@@ -254,11 +274,17 @@ module.exports = {
 						user: m.user
 					}));
 
+				const list = [leaderEntry, ...memberList];
+				const total = totalMembers + 1; // total termasuk leader
+
 				return {
 					message: "OK",
 					code: 200,
 					type: "SUCCESS",
-					data: { list: [leaderEntry, ...memberList] }
+					data: {
+						list,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
 				};
 			}
 		},

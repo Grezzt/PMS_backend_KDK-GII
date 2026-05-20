@@ -56,164 +56,258 @@ components:
                     schema:
                         $ref: "#/components/schemas/ErrorResponse"
     schemas:
+        Pagination:
+            type: object
+            properties:
+                page:
+                    type: integer
+                    example: 1
+                limit:
+                    type: integer
+                    example: 20
+                total:
+                    type: integer
+                    example: 42
+                totalPages:
+                    type: integer
+                    example: 3
         ErrorResponse:
             type: object
             properties:
-                name:
-                    type: string
                 message:
                     type: string
+                    example: "Unauthorized"
                 code:
                     type: integer
+                    example: 401
                 type:
                     type: string
+                    example: "ERR_UNAUTHORIZED"
+                data:
+                    nullable: true
+                    example: null
         AuthTokens:
             type: object
             properties:
                 accessToken:
                     type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 refreshToken:
                     type: string
+                    example: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
                 expiresIn:
                     type: string
+                    example: "1h"
         User:
             type: object
             properties:
                 id:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 name:
                     type: string
+                    example: "John Doe"
                 email:
                     type: string
+                    format: email
+                    example: "john.doe@example.com"
                 role:
                     type: string
+                    enum: [ADMIN, MEMBER]
+                    example: "MEMBER"
                 createdAt:
                     type: string
                     format: date-time
+                    example: "2026-05-13T02:00:00.000Z"
                 updatedAt:
                     type: string
                     format: date-time
+                    example: "2026-05-13T02:00:00.000Z"
         Workspace:
             type: object
             properties:
                 id:
                     type: string
+                    format: uuid
+                    example: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
                 name:
                     type: string
+                    example: "Product Team"
                 description:
                     type: string
+                    nullable: true
+                    example: "Workspace for product development team"
                 ownerId:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 createdAt:
                     type: string
                     format: date-time
+                    example: "2026-05-01T08:00:00.000Z"
                 updatedAt:
                     type: string
                     format: date-time
+                    example: "2026-05-10T10:30:00.000Z"
         Project:
             type: object
             properties:
                 id:
                     type: string
+                    format: uuid
+                    example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                 workspaceId:
                     type: string
+                    format: uuid
+                    example: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
                 name:
                     type: string
+                    example: "Mobile App Redesign"
                 description:
                     type: string
+                    nullable: true
+                    example: "Complete UI/UX overhaul for mobile application"
                 visibility:
                     type: string
+                    enum: [PUBLIC, PRIVATE]
+                    example: "PRIVATE"
                 statusConfig:
                     type: object
+                    nullable: true
+                    example: {"statuses": ["TODO", "IN_PROGRESS", "REVIEW", "DONE"]}
                 leaderId:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 createdAt:
                     type: string
                     format: date-time
+                    example: "2026-05-05T09:00:00.000Z"
                 updatedAt:
                     type: string
                     format: date-time
+                    example: "2026-05-12T14:00:00.000Z"
         Document:
             type: object
             properties:
                 id:
                     type: string
+                    format: uuid
+                    example: "d4e5f6a1-b2c3-4567-defa-234567890123"
                 projectId:
                     type: string
+                    format: uuid
+                    example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                 fileName:
                     type: string
+                    example: "requirements-v2.pdf"
                 storageKey:
                     type: string
+                    example: "documents/c3d4e5f6/uuid-requirements-v2.pdf"
+                url:
+                    type: string
+                    nullable: true
+                    example: "https://s3.backblazeb2.com/pms-bucket/documents/c3d4e5f6/uuid-requirements-v2.pdf"
                 createdAt:
                     type: string
                     format: date-time
+                    example: "2026-05-10T11:00:00.000Z"
                 updatedAt:
                     type: string
                     format: date-time
+                    example: "2026-05-10T11:00:00.000Z"
         TaskAttachment:
             type: object
             properties:
                 id:
                     type: string
+                    format: uuid
+                    example: "e5f6a1b2-c3d4-5678-efab-345678901234"
                 taskId:
                     type: string
+                    format: uuid
+                    example: "f6a1b2c3-d4e5-6789-fabc-456789012345"
                 fileName:
                     type: string
+                    example: "screenshot-bug-001.png"
                 fileUrl:
                     type: string
+                    example: "https://s3.backblazeb2.com/pms-bucket/task-attachments/f6a1/uuid-screenshot.png"
                 uploadedBy:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                url:
+                    type: string
+                    example: "https://s3.backblazeb2.com/pms-bucket/task-attachments/f6a1/uuid-screenshot.png"
                 createdAt:
                     type: string
                     format: date-time
+                    example: "2026-05-11T09:30:00.000Z"
                 updatedAt:
                     type: string
                     format: date-time
+                    example: "2026-05-11T09:30:00.000Z"
         WorkspaceMember:
             type: object
             properties:
                 userId:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 role:
                     type: string
                     enum: [admin, member, viewer]
+                    example: "admin"
                 isOwner:
                     type: boolean
+                    example: true
                 user:
                     type: object
                     properties:
                         id:
                             type: string
+                            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                         name:
                             type: string
+                            example: "John Doe"
                         email:
                             type: string
+                            example: "john.doe@example.com"
         ProjectMember:
             type: object
             properties:
                 userId:
                     type: string
+                    format: uuid
+                    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                 role:
                     type: string
                     enum: [admin, member, viewer]
+                    example: "admin"
                 isLeader:
                     type: boolean
+                    example: true
                 user:
                     type: object
                     properties:
                         id:
                             type: string
+                            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                         name:
                             type: string
+                            example: "John Doe"
                         email:
                             type: string
+                            example: "john.doe@example.com"
 security:
     - bearerAuth: []
 paths:
     /api/auth/register:
         post:
             tags: [Auth]
-            summary: Register user
+            summary: Register a new user account
             security: []
             requestBody:
                 required: true
@@ -221,19 +315,62 @@ paths:
                     application/json:
                         schema:
                             type: object
+                            required: [name, email, password]
                             properties:
                                 name:
                                     type: string
+                                    minLength: 2
+                                    maxLength: 100
+                                    example: "John Doe"
                                 email:
                                     type: string
+                                    format: email
+                                    example: "john.doe@example.com"
                                 password:
                                     type: string
-                            required: [name, email, password]
+                                    minLength: 6
+                                    example: "secret123"
             responses:
-                "200":
-                    description: Registered
+                "201":
+                    description: User created successfully
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    message:
+                                        type: string
+                                        example: "Created"
+                                    code:
+                                        type: integer
+                                        example: 201
+                                    type:
+                                        type: string
+                                        example: "CREATED"
+                                    data:
+                                        $ref: "#/components/schemas/User"
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    name: "John Doe"
+                                    email: "john.doe@example.com"
+                                    role: "MEMBER"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "409":
-                    $ref: "#/components/responses/Conflict"
+                    description: Email already registered
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            example:
+                                message: "Email already registered"
+                                code: 409
+                                type: "ERR_EMAIL_EXISTS"
+                                data: null
                 "422":
                     $ref: "#/components/responses/Unprocessable"
                 "500":
@@ -241,7 +378,7 @@ paths:
     /api/auth/login:
         post:
             tags: [Auth]
-            summary: Login
+            summary: Authenticate user and obtain tokens
             security: []
             requestBody:
                 required: true
@@ -249,21 +386,37 @@ paths:
                     application/json:
                         schema:
                             type: object
+                            required: [email, password]
                             properties:
                                 email:
                                     type: string
+                                    format: email
+                                    example: "john.doe@example.com"
                                 password:
                                     type: string
-                            required: [email, password]
+                                    example: "secret123"
             responses:
                 "200":
-                    description: Tokens
+                    description: Authentication successful, returns JWT tokens
                     content:
                         application/json:
                             schema:
                                 $ref: "#/components/schemas/AuthTokens"
+                            example:
+                                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExYjJjM2Q0LWU1ZjYtNzg5MC1hYmNkLWVmMTIzNDU2Nzg5MCIsImVtYWlsIjoiam9obi5kb2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3NDcxMDg4MDB9.SIG"
+                                refreshToken: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+                                expiresIn: "1h"
                 "401":
-                    $ref: "#/components/responses/Unauthorized"
+                    description: Invalid credentials
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            example:
+                                message: "Invalid email or password"
+                                code: 401
+                                type: "ERR_INVALID_CREDS"
+                                data: null
                 "422":
                     $ref: "#/components/responses/Unprocessable"
                 "500":
@@ -271,27 +424,51 @@ paths:
     /api/auth/me:
         get:
             tags: [Auth]
-            summary: Get current user
+            summary: Get authenticated user profile
             responses:
                 "200":
-                    description: Current user
+                    description: Current user profile
                     content:
                         application/json:
                             schema:
                                 type: object
                                 properties:
-                                    user:
+                                    message:
+                                        type: string
+                                    code:
+                                        type: integer
+                                    type:
+                                        type: string
+                                    data:
                                         $ref: "#/components/schemas/User"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    name: "John Doe"
+                                    email: "john.doe@example.com"
+                                    role: "MEMBER"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "401":
-                    $ref: "#/components/responses/Unauthorized"
-                "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Token invalid or user no longer exists
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            example:
+                                message: "Unauthorized"
+                                code: 401
+                                type: "ERR_UNAUTHORIZED"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/auth/refresh:
         post:
             tags: [Auth]
-            summary: Refresh access token
+            summary: Refresh access token using refresh token
             security: []
             requestBody:
                 required: true
@@ -299,15 +476,37 @@ paths:
                     application/json:
                         schema:
                             type: object
+                            required: [refreshToken]
                             properties:
                                 refreshToken:
                                     type: string
-                            required: [refreshToken]
+                                    example: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
             responses:
                 "200":
-                    description: New access token
+                    description: New access token issued
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    accessToken:
+                                        type: string
+                                    expiresIn:
+                                        type: string
+                            example:
+                                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                expiresIn: "1h"
                 "401":
-                    $ref: "#/components/responses/Unauthorized"
+                    description: Refresh token invalid, revoked, or expired
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            example:
+                                message: "Unauthorized"
+                                code: 401
+                                type: "ERR_UNAUTHORIZED"
+                                data: null
                 "422":
                     $ref: "#/components/responses/Unprocessable"
                 "500":
@@ -315,7 +514,7 @@ paths:
     /api/auth/logout:
         post:
             tags: [Auth]
-            summary: Logout
+            summary: Revoke refresh token (logout)
             security: []
             requestBody:
                 required: true
@@ -323,17 +522,25 @@ paths:
                     application/json:
                         schema:
                             type: object
+                            required: [refreshToken]
                             properties:
                                 refreshToken:
                                     type: string
-                            required: [refreshToken]
+                                    example: "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
             responses:
-                "200":
-                    description: Logged out
-                "401":
-                    $ref: "#/components/responses/Unauthorized"
+                "204":
+                    description: Logged out successfully — no content
                 "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Refresh token not found
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/ErrorResponse"
+                            example:
+                                message: "Not Found"
+                                code: 404
+                                type: "ERR_NOT_FOUND"
+                                data: null
                 "422":
                     $ref: "#/components/responses/Unprocessable"
                 "500":
@@ -341,19 +548,37 @@ paths:
     /api/users/me:
         get:
             tags: [Users]
-            summary: Get current user profile
+            summary: Get current authenticated user profile
             responses:
                 "200":
-                    description: Profile
+                    description: User profile retrieved
+                    content:
+                        application/json:
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    name: "John Doe"
+                                    email: "john.doe@example.com"
+                                    role: "MEMBER"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "401":
-                    $ref: "#/components/responses/Unauthorized"
-                "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Unauthorized
+                    content:
+                        application/json:
+                            example:
+                                message: "Unauthorized"
+                                code: 401
+                                type: "ERR_UNAUTHORIZED"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
         patch:
             tags: [Users]
-            summary: Update current user profile
+            summary: Update current user profile (partial update)
             requestBody:
                 required: true
                 content:
@@ -363,110 +588,224 @@ paths:
                             properties:
                                 name:
                                     type: string
+                                    minLength: 2
+                                    maxLength: 100
+                                    example: "Jane Doe"
                                 email:
                                     type: string
+                                    format: email
+                                    example: "jane.doe@example.com"
                                 password:
                                     type: string
+                                    minLength: 6
+                                    example: "newsecret123"
                                 currentPassword:
                                     type: string
+                                    example: "secret123"
             responses:
                 "200":
-                    description: Updated
+                    description: Profile updated
+                    content:
+                        application/json:
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    name: "Jane Doe"
+                                    email: "jane.doe@example.com"
+                                    role: "MEMBER"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T09:00:00.000Z"
                 "400":
-                    $ref: "#/components/responses/BadRequest"
+                    description: currentPassword required when changing password
+                    content:
+                        application/json:
+                            example:
+                                message: "Bad Request"
+                                code: 400
+                                type: "ERR_BAD_REQUEST"
+                                data: null
                 "401":
-                    $ref: "#/components/responses/Unauthorized"
-                "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Unauthorized or current password incorrect
+                    content:
+                        application/json:
+                            example:
+                                message: "Current password is incorrect"
+                                code: 401
+                                type: "ERR_WRONG_PASSWORD"
+                                data: null
                 "409":
-                    $ref: "#/components/responses/Conflict"
-                "422":
-                    $ref: "#/components/responses/Unprocessable"
+                    description: Email already in use
+                    content:
+                        application/json:
+                            example:
+                                message: "Email already used"
+                                code: 409
+                                type: "ERR_CONFLICT"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/users/{id}:
         get:
             tags: [Users]
-            summary: Get user by id
+            summary: Get user profile by ID
             parameters:
                 - name: id
                   in: path
                   required: true
                   schema:
                       type: string
+                      format: uuid
+                  example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
             responses:
                 "200":
-                    description: User
+                    description: User profile
                     content:
                         application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    user:
-                                        $ref: "#/components/schemas/User"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    name: "John Doe"
+                                    email: "john.doe@example.com"
+                                    role: "MEMBER"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: User not found
+                    content:
+                        application/json:
+                            example:
+                                message: "Not Found"
+                                code: 404
+                                type: "ERR_NOT_FOUND"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/users:
         get:
             tags: [Users]
-            summary: List users (admin only)
+            summary: List all users (admin only)
             parameters:
                 - name: page
                   in: query
                   schema:
                       type: integer
+                      default: 1
+                  example: 1
                 - name: limit
                   in: query
                   schema:
                       type: integer
+                      default: 20
+                      maximum: 100
+                  example: 20
                 - name: search
                   in: query
                   schema:
                       type: string
+                  example: "john"
             responses:
                 "200":
-                    description: User list
+                    description: Paginated list of users
+                    content:
+                        application/json:
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          name: "John Doe"
+                                          email: "john.doe@example.com"
+                                          role: "MEMBER"
+                                          createdAt: "2026-05-13T02:00:00.000Z"
+                                          updatedAt: "2026-05-13T02:00:00.000Z"
+                                        - id: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                          name: "Jane Smith"
+                                          email: "jane.smith@example.com"
+                                          role: "ADMIN"
+                                          createdAt: "2026-05-10T08:00:00.000Z"
+                                          updatedAt: "2026-05-10T08:00:00.000Z"
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 2
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
-                    $ref: "#/components/responses/Forbidden"
+                    description: Admin access required
+                    content:
+                        application/json:
+                            example:
+                                message: "Forbidden"
+                                code: 403
+                                type: "ERR_FORBIDDEN"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/workspaces:
         get:
             tags: [Workspaces]
-            summary: List workspaces
+            summary: List workspaces (owned or member)
+            parameters:
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: Workspaces
+                    description: Paginated workspace list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Workspace"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - id: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                          name: "Product Team"
+                                          description: "Workspace for product development team"
+                                          ownerId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          createdAt: "2026-05-01T08:00:00.000Z"
+                                          updatedAt: "2026-05-10T10:30:00.000Z"
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 1
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "500":
                     $ref: "#/components/responses/InternalError"
         post:
             tags: [Workspaces]
-            summary: Create workspace
+            summary: Create a new workspace
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             type: object
+                            required: [name]
                             properties:
                                 name:
                                     type: string
+                                    example: "Product Team"
                                 description:
                                     type: string
+                                    example: "Workspace for product development team"
                                 members:
                                     type: array
                                     items:
@@ -474,55 +813,91 @@ paths:
                                         properties:
                                             userId:
                                                 type: string
+                                                format: uuid
+                                                example: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
                                             role:
                                                 type: string
+                                                enum: [admin, member, viewer]
+                                                example: "member"
             responses:
-                "200":
+                "201":
                     description: Workspace created
                     content:
                         application/json:
-                            schema:
-                                $ref: "#/components/schemas/Workspace"
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    id: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    name: "Product Team"
+                                    description: "Workspace for product development team"
+                                    ownerId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "422":
-                    $ref: "#/components/responses/Unprocessable"
+                    description: Some member userIds do not exist
+                    content:
+                        application/json:
+                            example:
+                                message: "Unprocessable Entity"
+                                code: 422
+                                type: "ERR_UNPROCESSABLE_ENTITY"
+                                data:
+                                    missingUserIds: ["b2c3d4e5-f6a1-2345-bcde-f12345678901"]
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/workspaces/{id}:
         get:
             tags: [Workspaces]
-            summary: Get workspace by id
+            summary: Get workspace by ID
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                  example: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
             responses:
                 "200":
-                    description: Workspace
+                    description: Workspace detail
                     content:
                         application/json:
-                            schema:
-                                $ref: "#/components/schemas/Workspace"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    name: "Product Team"
+                                    description: "Workspace for product development team"
+                                    ownerId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-01T08:00:00.000Z"
+                                    updatedAt: "2026-05-10T10:30:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
                 "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Workspace not found
+                    content:
+                        application/json:
+                            example:
+                                message: "Not Found"
+                                code: 404
+                                type: "ERR_NOT_FOUND"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
         patch:
             tags: [Workspaces]
-            summary: Update workspace
+            summary: Update workspace (admin only)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             requestBody:
                 required: true
                 content:
@@ -532,11 +907,26 @@ paths:
                             properties:
                                 name:
                                     type: string
+                                    example: "Updated Product Team"
                                 description:
                                     type: string
+                                    example: "Updated description"
             responses:
                 "200":
                     description: Workspace updated
+                    content:
+                        application/json:
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    name: "Updated Product Team"
+                                    description: "Updated description"
+                                    ownerId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-01T08:00:00.000Z"
+                                    updatedAt: "2026-05-13T09:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -549,16 +939,15 @@ paths:
                     $ref: "#/components/responses/InternalError"
         delete:
             tags: [Workspaces]
-            summary: Delete workspace
+            summary: Delete workspace (admin only)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
-                "200":
-                    description: Workspace deleted
+                "204":
+                    description: Workspace deleted — no content
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -570,23 +959,42 @@ paths:
     /api/workspaces/{workspaceId}/members:
         get:
             tags: [Workspaces]
-            summary: List workspace members
-            description: Returns all members of a workspace including the owner. Requires at least `viewer` role.
+            summary: List workspace members (viewer+)
             parameters:
                 - name: workspaceId
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: List of workspace members
+                    description: Paginated member list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/WorkspaceMember"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - userId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          role: "admin"
+                                          isOwner: true
+                                          user: {id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "John Doe", email: "john.doe@example.com"}
+                                        - userId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                          role: "member"
+                                          isOwner: false
+                                          user: {id: "c3d4e5f6-a1b2-3456-cdef-123456789012", name: "Alice Dev", email: "alice@example.com"}
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 2
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -597,35 +1005,55 @@ paths:
                     $ref: "#/components/responses/InternalError"
         post:
             tags: [Workspaces]
-            summary: Add workspace member
+            summary: Add or update workspace member (admin only)
             parameters:
                 - name: workspaceId
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             type: object
+                            required: [userId]
                             properties:
                                 userId:
                                     type: string
+                                    format: uuid
+                                    example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                                 role:
                                     type: string
+                                    enum: [admin, member, viewer]
+                                    example: "member"
             responses:
-                "200":
-                    description: Member upserted
+                "201":
+                    description: Member added or role updated
+                    content:
+                        application/json:
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    workspaceId: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    userId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    role: "MEMBER"
+                                    joinedAt: "2026-05-13T03:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
                 "404":
-                    $ref: "#/components/responses/NotFound"
-                "422":
-                    $ref: "#/components/responses/Unprocessable"
+                    description: User not found
+                    content:
+                        application/json:
+                            example:
+                                message: "Not Found"
+                                code: 404
+                                type: "ERR_NOT_FOUND"
+                                data: null
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/projects:
@@ -635,48 +1063,87 @@ paths:
             parameters:
                 - name: workspaceId
                   in: query
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: Projects
+                    description: Paginated project list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Project"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - id: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                          workspaceId: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                          name: "Mobile App Redesign"
+                                          description: "Complete UI/UX overhaul"
+                                          visibility: "PRIVATE"
+                                          leaderId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          createdAt: "2026-05-05T09:00:00.000Z"
+                                          updatedAt: "2026-05-12T14:00:00.000Z"
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 1
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "500":
                     $ref: "#/components/responses/InternalError"
         post:
             tags: [Projects]
-            summary: Create project
+            summary: Create a new project
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             type: object
+                            required: [workspaceId, name]
                             properties:
                                 workspaceId:
                                     type: string
+                                    format: uuid
+                                    example: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
                                 name:
                                     type: string
+                                    example: "Mobile App Redesign"
                                 description:
                                     type: string
+                                    example: "Complete UI/UX overhaul for mobile application"
                                 visibility:
                                     type: string
+                                    enum: [public, private]
+                                    example: "private"
                                 statusConfig:
                                     type: object
+                                    example: {statuses: ["TODO", "IN_PROGRESS", "REVIEW", "DONE"]}
             responses:
-                "200":
+                "201":
                     description: Project created
                     content:
                         application/json:
-                            schema:
-                                $ref: "#/components/schemas/Project"
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    id: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    workspaceId: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    name: "Mobile App Redesign"
+                                    description: "Complete UI/UX overhaul for mobile application"
+                                    visibility: "PRIVATE"
+                                    leaderId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-13T02:00:00.000Z"
+                                    updatedAt: "2026-05-13T02:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -688,20 +1155,30 @@ paths:
     /api/projects/{id}:
         get:
             tags: [Projects]
-            summary: Get project by id
+            summary: Get project by ID
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
                 "200":
-                    description: Project
+                    description: Project detail
                     content:
                         application/json:
-                            schema:
-                                $ref: "#/components/schemas/Project"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    workspaceId: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    name: "Mobile App Redesign"
+                                    description: "Complete UI/UX overhaul"
+                                    visibility: "PRIVATE"
+                                    leaderId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-05T09:00:00.000Z"
+                                    updatedAt: "2026-05-12T14:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -717,8 +1194,7 @@ paths:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             requestBody:
                 required: true
                 content:
@@ -728,15 +1204,28 @@ paths:
                             properties:
                                 name:
                                     type: string
+                                    example: "Mobile App v2"
                                 description:
                                     type: string
                                 visibility:
                                     type: string
+                                    enum: [public, private]
                                 statusConfig:
                                     type: object
             responses:
                 "200":
                     description: Project updated
+                    content:
+                        application/json:
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    name: "Mobile App v2"
+                                    visibility: "PUBLIC"
+                                    updatedAt: "2026-05-13T09:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -749,16 +1238,15 @@ paths:
                     $ref: "#/components/responses/InternalError"
         delete:
             tags: [Projects]
-            summary: Delete project
+            summary: Delete project (admin only)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
-                "200":
-                    description: Project deleted
+                "204":
+                    description: Project deleted — no content
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -770,23 +1258,42 @@ paths:
     /api/projects/{projectId}/members:
         get:
             tags: [Projects]
-            summary: List project members
-            description: Returns all explicit project members plus the project leader. Requires at least `viewer` role.
+            summary: List project members (viewer+)
             parameters:
                 - name: projectId
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: List of project members
+                    description: Paginated project member list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/ProjectMember"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - userId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          role: "admin"
+                                          isLeader: true
+                                          user: {id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "John Doe", email: "john.doe@example.com"}
+                                        - userId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                          role: "member"
+                                          isLeader: false
+                                          user: {id: "c3d4e5f6-a1b2-3456-cdef-123456789012", name: "Alice Dev", email: "alice@example.com"}
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 2
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -797,27 +1304,42 @@ paths:
                     $ref: "#/components/responses/InternalError"
         post:
             tags: [Projects]
-            summary: Add project member
+            summary: Add project member (admin only, user must be workspace member)
             parameters:
                 - name: projectId
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             requestBody:
                 required: true
                 content:
                     application/json:
                         schema:
                             type: object
+                            required: [userId]
                             properties:
                                 userId:
                                     type: string
+                                    format: uuid
+                                    example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                                 role:
                                     type: string
+                                    enum: [admin, member, viewer]
+                                    example: "member"
             responses:
-                "200":
-                    description: Member upserted
+                "201":
+                    description: Member added
+                    content:
+                        application/json:
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    projectId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    userId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    role: "MEMBER"
+                                    joinedAt: "2026-05-13T03:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -825,28 +1347,56 @@ paths:
                 "404":
                     $ref: "#/components/responses/NotFound"
                 "422":
-                    $ref: "#/components/responses/Unprocessable"
+                    description: User is not a workspace member
+                    content:
+                        application/json:
+                            example:
+                                message: "Unprocessable Entity"
+                                code: 422
+                                type: "ERR_UNPROCESSABLE_ENTITY"
+                                data:
+                                    workspaceId: "b2c3d4e5-f6a1-2345-bcde-f12345678901"
+                                    userId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                 "500":
                     $ref: "#/components/responses/InternalError"
     /api/documents:
         get:
             tags: [Documents]
-            summary: List documents
+            summary: List project documents
             parameters:
                 - name: projectId
                   in: query
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                  example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: Documents
+                    description: Paginated document list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/Document"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - id: "d4e5f6a1-b2c3-4567-defa-234567890123"
+                                          projectId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                          fileName: "requirements-v2.pdf"
+                                          storageKey: "documents/c3d4e5f6/uuid-requirements-v2.pdf"
+                                          createdAt: "2026-05-10T11:00:00.000Z"
+                                          updatedAt: "2026-05-10T11:00:00.000Z"
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 1
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -856,30 +1406,39 @@ paths:
     /api/documents/upload:
         post:
             tags: [Documents]
-            summary: Upload document
+            summary: Upload a document to a project
             requestBody:
                 required: true
                 content:
                     multipart/form-data:
                         schema:
                             type: object
+                            required: [projectId, file]
                             properties:
                                 projectId:
                                     type: string
+                                    format: uuid
+                                    example: "c3d4e5f6-a1b2-3456-cdef-123456789012"
                                 file:
                                     type: string
                                     format: binary
-                            required: [projectId, file]
             responses:
-                "200":
+                "201":
                     description: Document uploaded
                     content:
                         application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    document:
-                                        $ref: "#/components/schemas/Document"
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    id: "d4e5f6a1-b2c3-4567-defa-234567890123"
+                                    projectId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    fileName: "requirements-v2.pdf"
+                                    storageKey: "documents/c3d4e5f6/uuid-requirements-v2.pdf"
+                                    createdAt: "2026-05-10T11:00:00.000Z"
+                                    updatedAt: "2026-05-10T11:00:00.000Z"
+                                    url: "https://s3.backblazeb2.com/pms-bucket/documents/c3d4e5f6/uuid-requirements-v2.pdf"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -891,20 +1450,28 @@ paths:
     /api/documents/{id}:
         get:
             tags: [Documents]
-            summary: Get document by id
+            summary: Get document by ID
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
                 "200":
-                    description: Document
+                    description: Document detail
                     content:
                         application/json:
-                            schema:
-                                $ref: "#/components/schemas/Document"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    id: "d4e5f6a1-b2c3-4567-defa-234567890123"
+                                    projectId: "c3d4e5f6-a1b2-3456-cdef-123456789012"
+                                    fileName: "requirements-v2.pdf"
+                                    storageKey: "documents/c3d4e5f6/uuid-requirements-v2.pdf"
+                                    createdAt: "2026-05-10T11:00:00.000Z"
+                                    updatedAt: "2026-05-10T11:00:00.000Z"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -915,16 +1482,15 @@ paths:
                     $ref: "#/components/responses/InternalError"
         delete:
             tags: [Documents]
-            summary: Delete document
+            summary: Delete document (admin only)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
-                "200":
-                    description: Document deleted
+                "204":
+                    description: Document deleted — no content
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -936,13 +1502,12 @@ paths:
     /api/documents/{id}/download:
         get:
             tags: [Documents]
-            summary: Download document (redirect)
+            summary: Download document (redirect to presigned URL)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
                 "302":
                     description: Redirect to presigned URL
@@ -950,6 +1515,7 @@ paths:
                         Location:
                             schema:
                                 type: string
+                            example: "https://s3.backblazeb2.com/pms-bucket/documents/...?X-Amz-Expires=3600"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -968,29 +1534,45 @@ paths:
                     multipart/form-data:
                         schema:
                             type: object
+                            required: [taskId, file]
                             properties:
                                 taskId:
                                     type: string
+                                    format: uuid
+                                    example: "f6a1b2c3-d4e5-6789-fabc-456789012345"
                                 file:
                                     type: string
                                     format: binary
-                            required: [taskId, file]
             responses:
-                "200":
+                "201":
                     description: Attachment uploaded
                     content:
                         application/json:
-                            schema:
-                                type: object
-                                properties:
-                                    attachment:
-                                        $ref: "#/components/schemas/TaskAttachment"
+                            example:
+                                message: "Created"
+                                code: 201
+                                type: "CREATED"
+                                data:
+                                    id: "e5f6a1b2-c3d4-5678-efab-345678901234"
+                                    taskId: "f6a1b2c3-d4e5-6789-fabc-456789012345"
+                                    fileName: "screenshot-bug-001.png"
+                                    fileUrl: "https://s3.backblazeb2.com/pms-bucket/task-attachments/f6a1/uuid-screenshot.png"
+                                    uploadedBy: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                    createdAt: "2026-05-11T09:30:00.000Z"
+                                    url: "https://s3.backblazeb2.com/pms-bucket/task-attachments/f6a1/uuid-screenshot.png"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
                     $ref: "#/components/responses/Forbidden"
                 "404":
-                    $ref: "#/components/responses/NotFound"
+                    description: Task not found
+                    content:
+                        application/json:
+                            example:
+                                message: "Not Found"
+                                code: 404
+                                type: "ERR_NOT_FOUND"
+                                data: null
                 "422":
                     $ref: "#/components/responses/Unprocessable"
                 "500":
@@ -1003,17 +1585,35 @@ paths:
                 - name: taskId
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
+                - name: page
+                  in: query
+                  schema: {type: integer, default: 1}
+                - name: limit
+                  in: query
+                  schema: {type: integer, default: 20, maximum: 100}
             responses:
                 "200":
-                    description: Attachments
+                    description: Paginated attachment list
                     content:
                         application/json:
-                            schema:
-                                type: array
-                                items:
-                                    $ref: "#/components/schemas/TaskAttachment"
+                            example:
+                                message: "OK"
+                                code: 200
+                                type: "SUCCESS"
+                                data:
+                                    list:
+                                        - id: "e5f6a1b2-c3d4-5678-efab-345678901234"
+                                          taskId: "f6a1b2c3-d4e5-6789-fabc-456789012345"
+                                          fileName: "screenshot-bug-001.png"
+                                          fileUrl: "https://s3.backblazeb2.com/pms-bucket/task-attachments/uuid.png"
+                                          uploadedBy: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                                          createdAt: "2026-05-11T09:30:00.000Z"
+                                    pagination:
+                                        page: 1
+                                        limit: 20
+                                        total: 1
+                                        totalPages: 1
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -1025,13 +1625,12 @@ paths:
     /api/documents/task-attachments/{id}/download:
         get:
             tags: [Documents]
-            summary: Download task attachment (redirect)
+            summary: Download task attachment (redirect to presigned URL)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
                 "302":
                     description: Redirect to presigned URL
@@ -1039,6 +1638,7 @@ paths:
                         Location:
                             schema:
                                 type: string
+                            example: "https://s3.backblazeb2.com/pms-bucket/task-attachments/...?X-Amz-Expires=3600"
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":
@@ -1050,16 +1650,15 @@ paths:
     /api/documents/task-attachments/{id}:
         delete:
             tags: [Documents]
-            summary: Delete task attachment
+            summary: Delete task attachment (admin only)
             parameters:
                 - name: id
                   in: path
                   required: true
-                  schema:
-                      type: string
+                  schema: {type: string, format: uuid}
             responses:
-                "200":
-                    description: Attachment deleted
+                "204":
+                    description: Attachment deleted — no content
                 "401":
                     $ref: "#/components/responses/Unauthorized"
                 "403":

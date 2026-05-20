@@ -192,14 +192,15 @@ module.exports = {
 			auth: "required",
 			params: {
 				search: { type: "string", optional: true },
-				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
 				limit: {
 					type: "number",
 					integer: true,
 					min: 1,
 					max: 100,
 					default: 20,
-					optional: true
+					optional: true,
+					convert: true
 				}
 			},
 			async handler(ctx) {

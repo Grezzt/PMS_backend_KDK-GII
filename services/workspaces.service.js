@@ -35,8 +35,8 @@ module.exports = {
 			rest: "GET /",
 			auth: "required",
 			params: {
-				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
-				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
 			},
 			async handler(ctx) {
 				const userId = ctx.meta.user.id;
@@ -339,8 +339,8 @@ module.exports = {
 			auth: "required",
 			params: {
 				workspaceId: "string",
-				page: { type: "number", integer: true, min: 1, default: 1, optional: true },
-				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true }
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
 			},
 			async handler(ctx) {
 				const { workspaceId, page = 1, limit = 20 } = ctx.params;

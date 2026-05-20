@@ -1,1327 +1,1019 @@
 {
-	"info": {
-		"_postman_id": "0df81e05-2d4e-4f24-9b2f-db3bfb81096a",
-		"name": "Moleculer JS Microservice Auth API",
-		"description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — access token dan refresh token akan otomatis tersimpan ke env variable `jwt_token` dan `refresh_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"description": "Grup endpoint terkait autentikasi (Registrasi, Login, Profil, Refresh, Logout).",
-			"item": [
-				{
-					"name": "1. User Registration",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe\",\n    \"password\": \"password123\",\n    \"email\": \"johndoe@email.com\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"register"
-							]
-						},
-						"description": "Mendaftarkan pengguna baru ke sistem."
-					},
-					"response": []
-				},
-				{
-					"name": "2. User Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.accessToken) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
-									"    pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
-									"    console.log(\"Tokens automatically saved to environment variables!\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"admin@pms.dev\",\n    \"password\": \"password123\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
-						},
-						"description": "Login dan dapatkan JWT Access Token & Refresh Token.\n\n*Catatan: Script Postman pada endpoint ini telah dikonfigurasi untuk menangkap nilai token balasan secara otomatis dan memindahkannya ke Environment Variable `jwt_token` dan `refresh_token`. Anda tinggal mengeksekusi request berikutnya tanpa perlu copy-paste token manual!*"
-					},
-					"response": []
-				},
-				{
-					"name": "3. Get My Profile (Protected)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/auth/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"me"
-							]
-						},
-						"description": "Endpoint yang terotorisasi. Hanya pengguna yang menyematkan `Bearer Token` di bagian HTTP header (Authorization) yang dapat mengakses ini. Token tersebut diambil otomatis dari hasil login."
-					},
-					"response": []
-				},
-				{
-					"name": "4. Refresh Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.accessToken) {",
-									"    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
-									"    console.log(\"New Access Token automatically saved!\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/refresh",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"refresh"
-							]
-						},
-						"description": "Memperbarui Access Token yang sudah expired menggunakan Refresh Token."
-					},
-					"response": []
-				},
-				{
-					"name": "5. Logout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/auth/logout",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"logout"
-							]
-						},
-						"description": "Logout dan revoke Refresh Token agar tidak bisa digunakan lagi."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Users",
-			"description": "Grup endpoint terkait manajemen profil pengguna.",
-			"item": [
-				{
-					"name": "1. Get My Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Ambil profil user yang sedang login."
-					},
-					"response": []
-				},
-				{
-					"name": "2. Update My Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"John Doe Updated\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/users/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Update profil user yang login. Field yang bisa diubah: name, email, password. Jika update password, wajib sertakan currentPassword."
-					},
-					"response": []
-				},
-				{
-					"name": "3. Get User By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "user-uuid-here"
-								}
-							]
-						},
-						"description": "Lihat profil publik user lain."
-					},
-					"response": []
-				},
-				{
-					"name": "4. List Users (Admin Only)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/users?page=1&limit=20&search=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"users"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								},
-								{
-									"key": "search",
-									"value": ""
-								}
-							]
-						},
-						"description": "List semua user. Hanya bisa diakses admin global. Mendukung filter pencarian nama atau email, dan pagination."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Workspaces",
-			"description": "Grup endpoint untuk CRUD workspace dan member management.",
-			"item": [
-				{
-					"name": "1. List Workspaces",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "2. Get Workspace By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "3. Create Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Marketing\",\n    \"description\": \"Workspace marketing\",\n    \"members\": [\n        { \"userId\": \"user-uuid-1\", \"role\": \"member\" },\n        { \"userId\": \"user-uuid-2\", \"role\": \"viewer\" }\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Update Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Marketing Updated\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Delete Workspace",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "6. Add Workspace Member",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"user-uuid-here\",\n    \"role\": \"member\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:workspaceId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": "workspace-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Workspace Members",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/workspaces/:workspaceId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"workspaces",
-								":workspaceId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "workspaceId",
-									"value": "workspace-uuid-here"
-								}
-							]
-						},
-						"description": "Ambil daftar semua anggota workspace. Owner selalu muncul pertama dengan isOwner=true. Minimal role viewer dibutuhkan."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Projects",
-			"description": "Grup endpoint untuk CRUD project dan member management.",
-			"item": [
-				{
-					"name": "1. List Projects",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects?workspaceId=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects"
-							],
-							"query": [
-								{
-									"key": "workspaceId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "2. Get Project By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "3. Create Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"workspaceId\": \"workspace-uuid-here\",\n    \"name\": \"Website Revamp\",\n    \"description\": \"Project redesign\",\n    \"visibility\": \"private\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Update Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Website Revamp v2\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Delete Project",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "6. Add Project Member",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"user-uuid-here\",\n    \"role\": \"member\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/api/projects/:projectId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":projectId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Project Members",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/projects/:projectId/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"projects",
-								":projectId",
-								"members"
-							],
-							"variable": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here"
-								}
-							]
-						},
-						"description": "Ambil daftar semua anggota project. Leader selalu muncul pertama dengan isLeader=true. Minimal role viewer dibutuhkan."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Documents",
-			"description": "Grup endpoint untuk upload dokumen proyek dan attachment task (Backblaze + Prisma).",
-			"item": [
-				{
-					"name": "1. Upload Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "projectId",
-									"value": "project-uuid-here",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/api/documents/upload",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"upload"
-							]
-						},
-						"description": "Upload dokumen proyek. Field form-data wajib dikirim sebelum file."
-					},
-					"response": []
-				},
-				{
-					"name": "2. Upload Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "taskId",
-									"value": "task-uuid-here",
-									"type": "text"
-								},
-								{
-									"key": "file",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments"
-							]
-						},
-						"description": "Upload attachment untuk task tertentu."
-					},
-					"response": []
-				},
-				{
-					"name": "3. List Documents",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents?projectId=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents"
-							],
-							"query": [
-								{
-									"key": "projectId",
-									"value": ""
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Get Document By ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Download Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id",
-								"download"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						},
-						"description": "Akan redirect (302) ke presigned URL Backblaze."
-					},
-					"response": []
-				},
-				{
-					"name": "6. Delete Document",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "document-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "7. List Task Attachments",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task/:taskId/attachments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task",
-								":taskId",
-								"attachments"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "task-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "8. Download Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments/:id/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments",
-								":id",
-								"download"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "attachment-uuid-here"
-								}
-							]
-						},
-						"description": "Akan redirect (302) ke presigned URL Backblaze."
-					},
-					"response": []
-				},
-				{
-					"name": "9. Delete Task Attachment",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{jwt_token}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/documents/task-attachments/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"documents",
-								"task-attachments",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "attachment-uuid-here"
-								}
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "refresh_token",
-			"value": "",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "ddd04fae-a7f8-473e-999f-8b43dfbdfa85",
+    "name": "PMS Backend API Postman Documentations",
+    "description": "Koleksi endpoint untuk menguji Boilerplate Autentikasi berbasis Moleculer JS.\n\n**Cara pakai:**\n1. Jalankan server: `npm run dev`\n2. Eksekusi **2. User Login** terlebih dahulu — access token dan refresh token akan otomatis tersimpan ke env variable `jwt_token` dan `refresh_token`\n3. Semua request protected sudah terkonfigurasi menggunakan `{{jwt_token}}`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28256932",
+    "_collection_link": "https://go.postman.co/collection/28256932-ddd04fae-a7f8-473e-999f-8b43dfbdfa85?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "1. User Registration",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"John Doe\",\n    \"password\": \"secret123\",\n    \"email\": \"john.doe@example.com\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register pengguna baru. Mengembalikan HTTP 201 Created dengan data user."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {"method": "POST", "body": {"mode": "raw", "raw": "{\"name\":\"Fresh User\",\"email\":\"freshpms2026@example.com\",\"password\":\"test1234\"}"}},
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Created\",\n  \"code\": 201,\n  \"type\": \"CREATED\",\n  \"data\": {\n    \"id\": \"26650014-1329-4571-8a3b-02b2aea9e541\",\n    \"name\": \"Fresh User\",\n    \"email\": \"freshpms2026@example.com\",\n    \"role\": \"MEMBER\",\n    \"createdAt\": \"2026-05-13T03:35:10.875Z\",\n    \"updatedAt\": \"2026-05-13T03:35:10.875Z\"\n  }\n}"
+            },
+            {
+              "name": "409 Conflict - Email Already Registered",
+              "originalRequest": {"method": "POST", "body": {"mode": "raw", "raw": "{\"name\":\"Fresh User\",\"email\":\"freshpms2026@example.com\",\"password\":\"test1234\"}"}},
+              "status": "Conflict", "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Email already registered\",\n  \"code\": 409,\n  \"type\": \"ERR_EMAIL_EXISTS\"\n}"
+            },
+            {
+              "name": "422 Unprocessable - Validation Error",
+              "originalRequest": {"method": "POST", "body": {"mode": "raw", "raw": "{\"name\":\"A\",\"email\":\"not-email\"}"}},
+              "status": "Unprocessable Entity", "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Parameters validation error!\",\n  \"code\": 422,\n  \"type\": \"VALIDATION_ERROR\",\n  \"data\": [\n    {\"type\": \"stringMin\", \"message\": \"The 'name' field length must be greater than or equal to 2 characters long.\", \"field\": \"name\", \"expected\": 2, \"actual\": 1},\n    {\"type\": \"email\", \"message\": \"The 'email' field must be a valid e-mail.\", \"field\": \"email\", \"actual\": \"not-email\"},\n    {\"type\": \"required\", \"message\": \"The 'password' field is required.\", \"field\": \"password\"}\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.accessToken) {",
+                  "    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
+                  "    console.log(\"Tokens automatically saved to environment variables!\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"john.doe@example.com\",\n    \"password\": \"secret123\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login dan dapatkan JWT Access Token & Refresh Token. Script otomatis menyimpan token ke environment variable."
+          },
+          "response": [
+            {
+              "name": "200 OK - Login Success",
+              "originalRequest": {"method": "POST", "body": {"mode": "raw", "raw": "{\"email\":\"testpms2026@example.com\",\"password\":\"test1234\"}"}},
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjI1NWNjMTc2...\",\n  \"refreshToken\": \"97e1bd29589d73a7d407d129e06d28c9c5532d5076cef6aa6d2ead91...\",\n  \"expiresIn\": \"2h\"\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid Credentials",
+              "originalRequest": {"method": "POST", "body": {"mode": "raw", "raw": "{\"email\":\"testpms2026@example.com\",\"password\":\"wrongpassword\"}"}},
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Invalid email or password\",\n  \"code\": 401,\n  \"type\": \"ERR_INVALID_CREDS\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Get My Profile (Protected)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Ambil profil user dari token JWT. Token diambil otomatis dari env variable jwt_token."
+          },
+          "response": [
+            {
+              "name": "200 OK - Profile",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"name\": \"Test User Updated\",\n    \"email\": \"testpms2026@example.com\",\n    \"role\": \"MEMBER\",\n    \"createdAt\": \"2026-05-13T03:33:35.848Z\",\n    \"updatedAt\": \"2026-05-13T03:35:11.868Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid Token",
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"INVALID_TOKEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.accessToken) {",
+                  "    pm.environment.set(\"jwt_token\", jsonData.accessToken);",
+                  "    console.log(\"New Access Token automatically saved!\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Gunakan refresh_token dari environment variable untuk mendapatkan access token baru."
+          },
+          "response": [
+            {
+              "name": "200 OK - New Tokens",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6...\",\n  \"refreshToken\": \"newrefreshtoken...\",\n  \"expiresIn\": \"2h\"\n}"
+            },
+            {
+              "name": "401 Unauthorized - Invalid/Expired Refresh Token",
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"ERR_UNAUTHORIZED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "5. Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refreshToken\": \"{{refresh_token}}\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Revoke refresh token. Token yang sudah di-logout tidak bisa digunakan kembali."
+          },
+          "response": [
+            {
+              "name": "204 No Content - Logout Success",
+              "status": "No Content", "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": ""
+            },
+            {
+              "name": "401 Unauthorized - Token Already Revoked",
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"ERR_UNAUTHORIZED\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Grup endpoint terkait autentikasi (Registrasi, Login, Profil, Refresh, Logout)."
+    },
+    {
+      "name": "Users Service",
+      "item": [
+        {
+          "name": "1. Get My Profile",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/users/me", "host": ["{{base_url}}"], "path": ["api", "users", "me"]},
+            "description": "Ambil profil user yang sedang login."
+          },
+          "response": [
+            {
+              "name": "200 OK - My Profile",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"name\": \"Test User Updated\",\n    \"email\": \"testpms2026@example.com\",\n    \"role\": \"MEMBER\",\n    \"createdAt\": \"2026-05-13T03:33:35.848Z\",\n    \"updatedAt\": \"2026-05-13T03:35:11.868Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"INVALID_TOKEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Update My Profile",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n    \"name\": \"John Doe Updated\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {"raw": "{{base_url}}/api/users/me", "host": ["{{base_url}}"], "path": ["api", "users", "me"]},
+            "description": "Update profil user. Field: name, email, password (wajib sertakan currentPassword jika ubah password)."
+          },
+          "response": [
+            {
+              "name": "200 OK - Profile Updated",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"name\": \"Test User PMS\",\n    \"email\": \"testpms2026@example.com\",\n    \"role\": \"MEMBER\",\n    \"createdAt\": \"2026-05-13T03:33:35.848Z\",\n    \"updatedAt\": \"2026-05-13T03:37:36.747Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Get User By ID",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":id"],
+              "variable": [{"key": "id", "value": "255cc176-e304-4733-baa0-386a14b64aa8"}]
+            },
+            "description": "Lihat profil user lain berdasarkan ID."
+          },
+          "response": [
+            {
+              "name": "200 OK - User Found",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"name\": \"Test User PMS\",\n    \"email\": \"testpms2026@example.com\",\n    \"role\": \"MEMBER\",\n    \"createdAt\": \"2026-05-13T03:33:35.848Z\",\n    \"updatedAt\": \"2026-05-13T03:37:36.747Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found", "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Not Found\",\n  \"code\": 404,\n  \"type\": \"ERR_NOT_FOUND\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. List Users (Admin Only)",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=20&search=",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "20"},
+                {"key": "search", "value": ""}
+              ]
+            },
+            "description": "List semua user. Hanya bisa diakses admin global. Mendukung pagination dan filter nama/email."
+          },
+          "response": [
+            {
+              "name": "200 OK - User List (Admin)",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [\n      {\"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\", \"name\": \"Test User\", \"email\": \"testpms2026@example.com\", \"role\": \"MEMBER\", \"createdAt\": \"2026-05-13T03:33:35.848Z\", \"updatedAt\": \"2026-05-13T03:37:36.747Z\"}\n    ],\n    \"pagination\": {\"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1}\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden - Not Admin",
+              "status": "Forbidden", "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Forbidden\",\n  \"code\": 403,\n  \"type\": \"ERR_FORBIDDEN\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Grup endpoint terkait manajemen profil pengguna."
+    },
+    {
+      "name": "Workspaces Service",
+      "item": [
+        {
+          "name": "1. List Workspaces",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "workspaces"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default: 20, max: 100)" }
+              ]
+            },
+            "description": "List workspace milik user (owner atau member). Mendukung pagination."
+          },
+          "response": [
+            {
+              "name": "200 OK - Workspace List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [\n      {\n        \"id\": \"b2c3d4e5-f6a1-2345-bcde-f12345678901\",\n        \"name\": \"Product Team\",\n        \"description\": \"Workspace for product development team\",\n        \"ownerId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n        \"createdAt\": \"2026-05-01T08:00:00.000Z\",\n        \"updatedAt\": \"2026-05-10T10:30:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 20,\n      \"total\": 1,\n      \"totalPages\": 1\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"ERR_UNAUTHORIZED\",\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Get Workspace By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "workspaces",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "5c77729e-dae8-47ad-9687-fcddde400be3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Create Workspace",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"KDK\",\n    \"description\": \"Workspace marketing KDK\",\n    \"members\": [\n        { \"userId\": \"d05f651d-e8de-4827-869f-452dea8622ea\", \"role\": \"member\" }\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/workspaces",
+              "host": ["{{base_url}}"],
+              "path": ["api", "workspaces"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Created\",\n  \"code\": 201,\n  \"type\": \"CREATED\",\n  \"data\": {\n    \"id\": \"1f9298d8-fd32-40e6-ac10-61829965022b\",\n    \"name\": \"PMS Test Workspace\",\n    \"ownerId\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"description\": \"Test workspace for API testing\",\n    \"createdAt\": \"2026-05-13T03:37:42.824Z\",\n    \"updatedAt\": \"2026-05-13T03:37:42.824Z\"\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized", "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unauthorized\",\n  \"code\": 401,\n  \"type\": \"ERR_UNAUTHORIZED\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. Update Workspace",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n    \"name\": \"PMS Test Workspace Updated\",\n    \"description\": \"Updated description\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": ["{{base_url}}"], "path": ["api", "workspaces", ":id"],
+              "variable": [{"key": "id", "value": "1f9298d8-fd32-40e6-ac10-61829965022b"}]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Updated",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"1f9298d8-fd32-40e6-ac10-61829965022b\",\n    \"name\": \"PMS Test Workspace Updated\",\n    \"ownerId\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"description\": \"Test workspace for API testing\",\n    \"createdAt\": \"2026-05-13T03:37:42.824Z\",\n    \"updatedAt\": \"2026-05-13T03:37:48.943Z\"\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden - Not Admin",
+              "status": "Forbidden", "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Forbidden\",\n  \"code\": 403,\n  \"type\": \"ERR_FORBIDDEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "5. Delete Workspace",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:id",
+              "host": ["{{base_url}}"], "path": ["api", "workspaces", ":id"],
+              "variable": [{"key": "id", "value": "1f9298d8-fd32-40e6-ac10-61829965022b"}]
+            }
+          },
+          "response": [
+            {
+              "name": "204 No Content - Deleted",
+              "status": "No Content", "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": ""
+            },
+            {
+              "name": "403 Forbidden - Not Owner/Admin",
+              "status": "Forbidden", "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Forbidden\",\n  \"code\": 403,\n  \"type\": \"ERR_FORBIDDEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "6. Add Workspace Member",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n    \"userId\": \"26650014-1329-4571-8a3b-02b2aea9e541\",\n    \"role\": \"member\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:workspaceId/members",
+              "host": ["{{base_url}}"], "path": ["api", "workspaces", ":workspaceId", "members"],
+              "variable": [{"key": "workspaceId", "value": "1f9298d8-fd32-40e6-ac10-61829965022b"}]
+            },
+            "description": "Tambah member ke workspace. userId harus user yang sudah terdaftar."
+          },
+          "response": [
+            {
+              "name": "201 Created - Member Added",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Created\",\n  \"code\": 201,\n  \"type\": \"CREATED\",\n  \"data\": {\n    \"workspaceId\": \"1f9298d8-fd32-40e6-ac10-61829965022b\",\n    \"userId\": \"26650014-1329-4571-8a3b-02b2aea9e541\",\n    \"role\": \"MEMBER\",\n    \"joinedAt\": \"2026-05-13T03:40:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found - User Not Exist",
+              "status": "Not Found", "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Not Found\",\n  \"code\": 404,\n  \"type\": \"ERR_NOT_FOUND\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "7. List Workspace Members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/workspaces/:workspaceId/members?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "workspaces", ":workspaceId", "members"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ],
+              "variable": [{"key": "workspaceId", "value": "3a594c1d-5838-4ab8-9bf5-38331d82b60f"}]
+            },
+            "description": "List semua member workspace. Owner selalu muncul pertama dengan isOwner=true. Mendukung pagination."
+          },
+          "response": [
+            {
+              "name": "200 OK - Member List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [\n      {\n        \"userId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n        \"role\": \"admin\",\n        \"isOwner\": true,\n        \"user\": {\"id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\", \"name\": \"John Doe\", \"email\": \"john.doe@example.com\"}\n      }\n    ],\n    \"pagination\": {\"page\": 1, \"limit\": 20, \"total\": 1, \"totalPages\": 1}\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Grup endpoint untuk CRUD workspace dan member management."
+    },
+    {
+      "name": "Projects Service",
+      "item": [
+        {
+          "name": "1. List Projects",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects?workspaceId=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects"],
+              "query": [
+                { "key": "workspaceId", "value": "", "description": "Optional: filter by workspace" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "List project yang diikuti user. Bisa difilter per workspace."
+          },
+          "response": [
+            {
+              "name": "200 OK - Project List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [\n      {\n        \"id\": \"c3d4e5f6-a1b2-3456-cdef-123456789012\",\n        \"workspaceId\": \"b2c3d4e5-f6a1-2345-bcde-f12345678901\",\n        \"name\": \"Mobile App Redesign\",\n        \"description\": \"Complete UI/UX overhaul\",\n        \"visibility\": \"PRIVATE\",\n        \"leaderId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n        \"createdAt\": \"2026-05-05T09:00:00.000Z\",\n        \"updatedAt\": \"2026-05-12T14:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 20,\n      \"total\": 1,\n      \"totalPages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Get Project By ID",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": ["{{base_url}}"], "path": ["api", "projects", ":id"],
+              "variable": [{"key": "id", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"}]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Project",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485\",\n    \"workspaceId\": \"1f9298d8-fd32-40e6-ac10-61829965022b\",\n    \"name\": \"Test Project\",\n    \"description\": \"Test project for API testing\",\n    \"leaderId\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"visibility\": \"PUBLIC\",\n    \"statusConfig\": null,\n    \"createdAt\": \"2026-05-13T03:37:51.991Z\",\n    \"updatedAt\": \"2026-05-13T03:37:51.991Z\"\n  }\n}"
+            },
+            {
+              "name": "403 Forbidden - No Access",
+              "status": "Forbidden", "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"You do not have access to this project\",\n  \"code\": 403,\n  \"type\": \"ERR_FORBIDDEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Create Project",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"workspaceId\": \"094e17a9-ba31-4304-bc58-b6ac03ae2e02\",\n    \"name\": \"Website Revamp 202\",\n    \"description\": \"Project redesign\",\n    \"visibility\": \"public\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Update Project",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n    \"name\": \"Test Project Updated\",\n    \"visibility\": \"private\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": ["{{base_url}}"], "path": ["api", "projects", ":id"],
+              "variable": [{"key": "id", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"}]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Updated",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"id\": \"f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485\",\n    \"workspaceId\": \"1f9298d8-fd32-40e6-ac10-61829965022b\",\n    \"name\": \"Test Project Updated\",\n    \"description\": \"Test project for API testing\",\n    \"leaderId\": \"255cc176-e304-4733-baa0-386a14b64aa8\",\n    \"visibility\": \"PRIVATE\",\n    \"statusConfig\": null,\n    \"createdAt\": \"2026-05-13T03:37:51.991Z\",\n    \"updatedAt\": \"2026-05-13T03:37:58.097Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "5. Delete Project",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:id",
+              "host": ["{{base_url}}"], "path": ["api", "projects", ":id"],
+              "variable": [{"key": "id", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"}]
+            }
+          },
+          "response": [
+            {
+              "name": "204 No Content - Deleted",
+              "status": "No Content", "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": ""
+            },
+            {
+              "name": "403 Forbidden - Not Admin",
+              "status": "Forbidden", "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Forbidden\",\n  \"code\": 403,\n  \"type\": \"ERR_FORBIDDEN\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "6. Add Project Member",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n    \"userId\": \"26650014-1329-4571-8a3b-02b2aea9e541\",\n    \"role\": \"member\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {
+              "raw": "{{base_url}}/api/projects/:projectId/members",
+              "host": ["{{base_url}}"], "path": ["api", "projects", ":projectId", "members"],
+              "variable": [{"key": "projectId", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"}]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created - Member Added",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Created\",\n  \"code\": 201,\n  \"type\": \"CREATED\",\n  \"data\": {\n    \"projectId\": \"f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485\",\n    \"userId\": \"26650014-1329-4571-8a3b-02b2aea9e541\",\n    \"role\": \"MEMBER\",\n    \"joinedAt\": \"2026-05-13T03:40:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "422 Unprocessable - Not Workspace Member",
+              "status": "Unprocessable Entity", "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Unprocessable Entity\",\n  \"code\": 422,\n  \"type\": \"ERR_UNPROCESSABLE_ENTITY\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "7. List Project Members",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/:projectId/members?page=1&limit=20",
+              "host": ["{{base_url}}"], "path": ["api", "projects", ":projectId", "members"],
+              "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}],
+              "variable": [{"key": "projectId", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"}]
+            },
+            "description": "List semua member project. Leader muncul pertama dengan isLeader=true."
+          },
+          "response": [
+            {
+              "name": "200 OK - Member List",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [\n      {\"userId\": \"255cc176-e304-4733-baa0-386a14b64aa8\", \"role\": \"admin\", \"isLeader\": true, \"user\": {\"id\": \"255cc176-e304-4733-baa0-386a14b64aa8\", \"name\": \"Test User PMS\", \"email\": \"testpms2026@example.com\"}}\n    ],\n    \"pagination\": {\"page\": 1, \"limit\": 20, \"total\": 2, \"totalPages\": 1}\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Grup endpoint untuk CRUD project dan member management."
+    },
+    {
+      "name": "Documents Service",
+      "item": [
+        {
+          "name": "1. Upload Document",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "projectId", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485", "type": "text"},
+                {"key": "file", "type": "file", "src": ""}
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/documents/upload",
+              "host": ["{{base_url}}"], "path": ["api", "documents", "upload"]
+            },
+            "description": "Upload dokumen proyek. Gunakan multipart/form-data. Field projectId wajib ada."
+          },
+          "response": [
+            {
+              "name": "201 Created - Document Uploaded",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Created\",\n  \"code\": 201,\n  \"type\": \"CREATED\",\n  \"data\": {\n    \"id\": \"d4e5f6a1-b2c3-4567-defa-234567890123\",\n    \"projectId\": \"f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485\",\n    \"fileName\": \"requirements-v2.pdf\",\n    \"storageKey\": \"documents/f384c71f/uuid-requirements-v2.pdf\",\n    \"createdAt\": \"2026-05-13T10:00:00.000Z\",\n    \"updatedAt\": \"2026-05-13T10:00:00.000Z\",\n    \"url\": \"https://s3.backblazeb2.com/pms-bucket/documents/f384c71f/uuid-requirements-v2.pdf\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. List Documents",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents?projectId=f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485&page=1&limit=20",
+              "host": ["{{base_url}}"], "path": ["api", "documents"],
+              "query": [
+                {"key": "projectId", "value": "f384c71f-3f3f-4cd9-b6f8-c4ab06d6e485"},
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "20"}
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK - Document List",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"OK\",\n  \"code\": 200,\n  \"type\": \"SUCCESS\",\n  \"data\": {\n    \"list\": [],\n    \"pagination\": {\"page\": 1, \"limit\": 20, \"total\": 0, \"totalPages\": 0}\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Get Document By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4767158f-552d-44a3-8bb8-a9478e317cdb"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Download Document",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "documents",
+                ":id",
+                "download"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "4767158f-552d-44a3-8bb8-a9478e317cdb"
+                }
+              ]
+            },
+            "description": "Akan redirect (302) ke presigned URL Backblaze."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Delete Document",
+          "request": {
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]},
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/documents/:id",
+              "host": ["{{base_url}}"], "path": ["api", "documents", ":id"],
+              "variable": [{"key": "id", "value": "d4e5f6a1-b2c3-4567-defa-234567890123"}]
+            }
+          },
+          "response": [
+            {
+              "name": "204 No Content - Deleted",
+              "status": "No Content", "code": 204,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": ""
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found", "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"message\": \"Not Found\",\n  \"code\": 404,\n  \"type\": \"ERR_NOT_FOUND\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Grup endpoint untuk upload dokumen proyek dan attachment task (Backblaze + Prisma)."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ]
 }

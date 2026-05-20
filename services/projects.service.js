@@ -45,28 +45,46 @@ module.exports = {
 			rest: "GET /",
 			auth: "required",
 			params: {
-				workspaceId: { type: "string", optional: true }
+				workspaceId: { type: "string", optional: true },
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
 			},
 			async handler(ctx) {
-				const { workspaceId } = ctx.params;
+				const { workspaceId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 
+				let where;
 				if (workspaceId) {
 					await this.checkWorkspaceAccess(ctx, workspaceId, "viewer");
-					return this.prisma.project.findMany({
-						where: { workspaceId },
-						orderBy: { createdAt: "desc" }
-					});
-				}
-
-				return this.prisma.project.findMany({
-					where: {
+					where = { workspaceId };
+				} else {
+					where = {
 						OR: [
 							{ leaderId: ctx.meta.user.id },
 							{ members: { some: { userId: ctx.meta.user.id } } }
 						]
-					},
-					orderBy: { createdAt: "desc" }
-				});
+					};
+				}
+
+				const [projects, total] = await Promise.all([
+					this.prisma.project.findMany({
+						where,
+						skip,
+						take: limit,
+						orderBy: { createdAt: "desc" }
+					}),
+					this.prisma.project.count({ where })
+				]);
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: {
+						list: projects,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
+				};
 			}
 		},
 
@@ -81,8 +99,14 @@ module.exports = {
 				const { id } = ctx.params;
 				await this.checkProjectAccess(ctx, id, "viewer");
 				const project = await this.prisma.project.findUnique({ where: { id } });
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
-				return project;
+				if (!project) throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: project
+				};
 			}
 		},
 
@@ -114,10 +138,32 @@ module.exports = {
 					}
 				});
 
+				await this.prisma.projectMember.upsert({
+					where: {
+						projectId_userId: {
+							projectId: project.id,
+							userId: ctx.meta.user.id
+						}
+					},
+					create: {
+						projectId: project.id,
+						userId: ctx.meta.user.id,
+						role: "ADMIN"
+					},
+					update: { role: "ADMIN" }
+				});
+
 				this.logger.info(
 					`[projects] Created project "${name}" by user=${ctx.meta.user.id}`
 				);
-				return project;
+
+				ctx.meta.$statusCode = 201;
+				return {
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: project
+				};
 			}
 		},
 
@@ -149,7 +195,12 @@ module.exports = {
 				});
 
 				this.logger.info(`[projects] User=${ctx.meta.user.id} updated project=${id}`);
-				return project;
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: project
+				};
 			}
 		},
 
@@ -163,9 +214,11 @@ module.exports = {
 			async handler(ctx) {
 				const { id } = ctx.params;
 				await this.checkProjectAccess(ctx, id, "admin");
-				const project = await this.prisma.project.delete({ where: { id } });
+				await this.prisma.project.delete({ where: { id } });
 				this.logger.info(`[projects] Project=${id} deleted by user=${ctx.meta.user.id}`);
-				return { deleted: true, project };
+
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		},
 
@@ -175,22 +228,35 @@ module.exports = {
 		listMembers: {
 			rest: "GET /:projectId/members",
 			auth: "required",
-			params: { projectId: "string" },
+			params: {
+				projectId: "string",
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
+			},
 			async handler(ctx) {
-				const { projectId } = ctx.params;
+				const { projectId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 				await this.checkProjectAccess(ctx, projectId, "viewer");
 
 				const project = await this.prisma.project.findUnique({
 					where: { id: projectId },
-					select: { leaderId: true, leader: { select: { id: true, name: true, email: true } } }
+					select: {
+						leaderId: true,
+						leader: { select: { id: true, name: true, email: true } }
+					}
 				});
-				if (!project) throw new MoleculerError("Project not found", 404, "ERR_NOT_FOUND");
+				if (!project) throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 
-				const members = await this.prisma.projectMember.findMany({
-					where: { projectId },
-					include: { user: { select: { id: true, name: true, email: true } } },
-					orderBy: { createdAt: "asc" }
-				});
+				const [members, totalMembers] = await Promise.all([
+					this.prisma.projectMember.findMany({
+						where: { projectId },
+						include: { user: { select: { id: true, name: true, email: true } } },
+						orderBy: { joinedAt: "asc" },
+						skip,
+						take: limit
+					}),
+					this.prisma.projectMember.count({ where: { projectId } })
+				]);
 
 				const leaderEntry = {
 					userId: project.leaderId,
@@ -208,7 +274,18 @@ module.exports = {
 						user: m.user
 					}));
 
-				return [leaderEntry, ...memberList];
+				const list = [leaderEntry, ...memberList];
+				const total = totalMembers + 1; // total termasuk leader
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: {
+						list,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
+				};
 			}
 		},
 
@@ -227,7 +304,46 @@ module.exports = {
 				const { projectId, userId, role } = ctx.params;
 				await this.checkProjectAccess(ctx, projectId, "admin");
 
-				return this.prisma.projectMember.upsert({
+				const project = await this.prisma.project.findUnique({
+					where: { id: projectId },
+					select: { workspaceId: true }
+				});
+				if (!project) {
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
+				}
+
+				const user = await this.prisma.user.findUnique({
+					where: { id: userId },
+					select: { id: true }
+				});
+				if (!user) {
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
+				}
+
+				const workspace = await this.prisma.workspace.findUnique({
+					where: { id: project.workspaceId },
+					select: { ownerId: true }
+				});
+				const isOwner = workspace?.ownerId === userId;
+				const workspaceMember = await this.prisma.workspaceMember.findUnique({
+					where: {
+						workspaceId_userId: {
+							workspaceId: project.workspaceId,
+							userId
+						}
+					}
+				});
+
+				if (!isOwner && !workspaceMember) {
+					throw new MoleculerError(
+						"Unprocessable Entity",
+						422,
+						"ERR_UNPROCESSABLE_ENTITY",
+						{ workspaceId: project.workspaceId, userId }
+					);
+				}
+
+				const member = await this.prisma.projectMember.upsert({
 					where: { projectId_userId: { projectId, userId } },
 					create: {
 						projectId,
@@ -236,6 +352,14 @@ module.exports = {
 					},
 					update: { role: this._normalizeRole(role, { toEnum: true }) }
 				});
+
+				ctx.meta.$statusCode = 201;
+				return {
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: member
+				};
 			}
 		}
 	},

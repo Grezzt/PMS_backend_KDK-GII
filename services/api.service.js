@@ -84,8 +84,6 @@ module.exports = {
 				// autoAliases membaca `rest:` dari setiap action di service
 				autoAliases: true,
 
-	
-
 				// Konfigurasi busboy untuk semua multipart request di route ini
 				busboyConfig: {
 					limits: {
@@ -110,6 +108,14 @@ module.exports = {
 				// "restrict" = hanya alias eksplisit + autoAliases yang aktif
 				// Mencegah auto-mapping path (/documents/upload → documents.upload) yang tidak ada
 				mappingPolicy: "restrict",
+
+				onAfterCall(ctx, route, req, res, data) {
+					return this._normalizeResponse(ctx, data);
+				},
+
+				onError(req, res, err) {
+					return this.onError(req, res, err);
+				},
 
 				logging: true
 			}
@@ -138,6 +144,78 @@ module.exports = {
 	 * Methods. More info: https://moleculer.services/docs/0.15/services.html#Methods
 	 */
 	methods: {
+		_isResponseEnvelope(payload) {
+			return (
+				payload &&
+				typeof payload === "object" &&
+				Object.prototype.hasOwnProperty.call(payload, "message") &&
+				Object.prototype.hasOwnProperty.call(payload, "code") &&
+				Object.prototype.hasOwnProperty.call(payload, "type") &&
+				Object.prototype.hasOwnProperty.call(payload, "data")
+			);
+		},
+
+		_normalizeResponse(ctx, data) {
+			const statusCode = ctx?.meta?.$statusCode || 200;
+
+			if (statusCode === 302 || statusCode === 301) {
+				return null;
+			}
+
+			if (data === null && statusCode === 204) {
+				ctx.meta.$statusCode = 200;
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: null
+				};
+			}
+
+			if (this._isResponseEnvelope(data)) {
+				return data;
+			}
+
+			const normalizedCode = Number.isInteger(statusCode) ? statusCode : 200;
+			if (normalizedCode === 201) {
+				return {
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: data === undefined ? null : data
+				};
+			}
+
+			return {
+				message: "OK",
+				code: normalizedCode,
+				type: "SUCCESS",
+				data: data === undefined ? null : data
+			};
+		},
+
+		/**
+		 * Custom error handler — strips the `name` field from all error responses.
+		 * Ensures all errors follow the unified schema: { message, code, type, data }
+		 *
+		 * @param {IncomingRequest} req
+		 * @param {ServerResponse} res
+		 * @param {Error} err
+		 */
+		onError(req, res, err) {
+			const code = err.code && Number.isInteger(err.code) ? err.code : 500;
+			const body = {
+				message: err.message || "Internal Server Error",
+				code,
+				type: err.type || "ERR_INTERNAL",
+				data: err.data !== undefined ? err.data : null
+			};
+
+			res.setHeader("Content-Type", "application/json; charset=utf-8");
+			res.writeHead(code);
+			res.end(JSON.stringify(body));
+		},
+
 		/**
 		 * Authenticate the request. It check the `Authorization` token value in the request header.
 		 * Check the token value & resolve the user by the token.

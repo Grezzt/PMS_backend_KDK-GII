@@ -93,9 +93,15 @@ module.exports = {
 					}
 				});
 
+				ctx.meta.$statusCode = 201;
 				return {
-					document,
-					url: this._buildPublicUrl(storageKey)
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: {
+						...document,
+						url: this._buildPublicUrl(storageKey)
+					}
 				};
 			}
 		},
@@ -163,9 +169,15 @@ module.exports = {
 					}
 				});
 
+				ctx.meta.$statusCode = 201;
 				return {
-					attachment,
-					url: fileUrl
+					message: "Created",
+					code: 201,
+					type: "CREATED",
+					data: {
+						...attachment,
+						url: fileUrl
+					}
 				};
 			}
 		},
@@ -174,16 +186,34 @@ module.exports = {
 			rest: "GET /",
 			auth: "required",
 			params: {
-				projectId: "string"
+				projectId: "string",
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
 			},
 			async handler(ctx) {
-				const { projectId } = ctx.params;
+				const { projectId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
 				await this.checkProjectAccess(ctx, projectId, "viewer");
 
-				return this.prisma.document.findMany({
-					where: { projectId },
-					orderBy: { createdAt: "desc" }
-				});
+				const [list, total] = await Promise.all([
+					this.prisma.document.findMany({
+						where: { projectId },
+						skip,
+						take: limit,
+						orderBy: { createdAt: "desc" }
+					}),
+					this.prisma.document.count({ where: { projectId } })
+				]);
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: {
+						list,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
+				};
 			}
 		},
 
@@ -199,11 +229,17 @@ module.exports = {
 				});
 
 				if (!document) {
-					throw new MoleculerError("Document not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				await this.checkProjectAccess(ctx, document.projectId, "viewer");
-				return document;
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: document
+				};
 			}
 		},
 
@@ -262,7 +298,8 @@ module.exports = {
 					}
 				});
 
-				return { deleted: true };
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		},
 
@@ -270,24 +307,44 @@ module.exports = {
 			rest: "GET /task/:taskId/attachments",
 			auth: "required",
 			params: {
-				taskId: "string"
+				taskId: "string",
+				page: { type: "number", integer: true, min: 1, default: 1, optional: true, convert: true },
+				limit: { type: "number", integer: true, min: 1, max: 100, default: 20, optional: true, convert: true }
 			},
 			async handler(ctx) {
+				const { taskId, page = 1, limit = 20 } = ctx.params;
+				const skip = (page - 1) * limit;
+
 				const task = await this.prisma.task.findUnique({
-					where: { id: ctx.params.taskId },
+					where: { id: taskId },
 					select: { id: true, projectId: true }
 				});
 
 				if (!task) {
-					throw new MoleculerError("Task not found", 404, "ERR_NOT_FOUND");
+					throw new MoleculerError("Not Found", 404, "ERR_NOT_FOUND");
 				}
 
 				await this.checkProjectAccess(ctx, task.projectId, "viewer");
 
-				return this.prisma.taskAttachment.findMany({
-					where: { taskId: task.id },
-					orderBy: { createdAt: "desc" }
-				});
+				const [list, total] = await Promise.all([
+					this.prisma.taskAttachment.findMany({
+						where: { taskId: task.id },
+						skip,
+						take: limit,
+						orderBy: { createdAt: "desc" }
+					}),
+					this.prisma.taskAttachment.count({ where: { taskId: task.id } })
+				]);
+
+				return {
+					message: "OK",
+					code: 200,
+					type: "SUCCESS",
+					data: {
+						list,
+						pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+					}
+				};
 			}
 		},
 
@@ -373,7 +430,8 @@ module.exports = {
 					}
 				});
 
-				return { deleted: true };
+				ctx.meta.$statusCode = 204;
+				return null;
 			}
 		}
 	},
